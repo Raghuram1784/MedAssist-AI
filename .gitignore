@@ -1,0 +1,27 @@
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Testing cache
+.pytest_cache/
+
+# IDE configurations
+.vscode/
+
+# Datasets and CSVs
+datasets/
+*.csv
+
+# FAISS generated index files (recreated using build_vector_store.py)
+backend/rag/faiss_index/*.index
+backend/rag/faiss_index/*.json
+
+# Environments
+.env
