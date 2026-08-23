@@ -33,73 +33,106 @@ def build_grounded_prompt(
     patient_symptoms: List[str],
     patient_narrative: str,
     similar_cases: List[Dict[str, Any]],
-    kg_evidence: List[Dict[str, Any]]
+    kg_evidence: List[Dict[str, Any]],
+    max_chars: int = 3000
 ) -> str:
     """
-    Assemble the prompt with patient context, retrieved RAG cases, and Knowledge Graph relations.
+    Assemble the prompt with patient context, compressed RAG cases, and compressed KG evidence.
+    Applies active token safety trimming if prompt length exceeds max_chars.
     """
-    # 1. Format Patient details
+    # 1. Format Patient Section (Always kept intact)
     patient_section = (
-        f"Patient Information:\n"
+        f"Patient Presentation:\n"
         f"- Age: {patient_age}\n"
         f"- Gender: {patient_sex}\n"
         f"- Presenting Symptoms: {', '.join(patient_symptoms)}\n"
         f"- Synthesized Narrative: {patient_narrative}\n"
     )
     
-    # 2. Format FAISS Retrieved Cases (RAG)
-    rag_cases_list = []
-    for idx, case in enumerate(similar_cases, 1):
-        # Truncate clinical note to keep prompt clean
-        narr = case.get("clinical_narrative", "")
-        trunc_narr = (narr[:200] + "...") if len(narr) > 200 else narr
+    # 2. Process RAG cases to compressed representations (Remove narratives, cap symptoms)
+    processed_rag_cases = []
+    for case in similar_cases:
+        # Get active symptoms (value == "Yes" or True)
+        active_symptoms = []
+        for s in case.get("symptoms", []):
+            if s.get("value") in ("Yes", "1", 1, True, "True"):
+                active_symptoms.append(s.get("question", s.get("id")))
+                
+        # Limit to top 3-5 symptoms
+        top_symptoms = active_symptoms[:5]
         
-        # Resolve symptoms list
-        case_symptoms = [
-            s.get("question") for s in case.get("symptoms", []) 
-            if s.get("value") == "Yes"
-        ]
+        case_info = {
+            "ground_truth": case.get("ground_truth"),
+            "score": case.get("similarity_score", 0.0),
+            "symptoms": top_symptoms
+        }
+        processed_rag_cases.append(case_info)
         
-        case_text = (
-            f"[Case {idx}] Score: {case.get('similarity_score', 0.0):.4f}\n"
-            f"  - Diagnosis: {case.get('ground_truth')}\n"
-            f"  - Key Symptoms: {', '.join(case_symptoms[:6])}\n"
-            f"  - Clinical Note: {trunc_narr}"
-        )
-        rag_cases_list.append(case_text)
-        
-    rag_section = "FAISS Similar Cases Found (RAG Evidence):\n" + "\n\n".join(rag_cases_list)
-    
-    # 3. Format Knowledge Graph Evidence
-    kg_entries = []
+    # 3. Process KG evidence to compressed representations (Cap missing symptom counts)
+    processed_kg_evidence = []
     for item in kg_evidence:
-        # Check if error or valid
         if "error" in item:
             continue
-            
-        entry_text = (
-            f"- Disease: {item.get('disease')}\n"
-            f"  - ICD-10: {item.get('icd10')} | Severity level: {item.get('severity')}\n"
-            f"  - Symptoms Matched in KG: {', '.join(item.get('matched_symptoms', []))}\n"
-            f"  - Supporting KG Symptoms Missing in Patient: {', '.join(item.get('unmatched_symptoms', [])[:5])}"
-        )
-        kg_entries.append(entry_text)
+        kg_info = {
+            "disease": item.get("disease"),
+            "icd10": item.get("icd10"),
+            "severity": item.get("severity"),
+            "matched": item.get("matched_symptoms", []),
+            # Limit missing supporting symptoms to top 3-4 items
+            "missing": item.get("unmatched_symptoms", [])[:4]
+        }
+        processed_kg_evidence.append(kg_info)
+
+    # 4. Iteratively construct prompt, trimming RAG/KG context if length exceeds max_chars
+    rag_count = len(processed_rag_cases)
+    
+    while True:
+        active_cases = processed_rag_cases[:rag_count]
+        active_diagnoses = set(c["ground_truth"] for c in active_cases)
         
-    kg_section = "Clinical Knowledge Graph Structured Relations:\n" + "\n\n".join(kg_entries)
-    
-    # 4. Merge into final prompt template
-    prompt = (
-        f"Generate explainable diagnostic reasoning based on the following patient presentation "
-        f"and supporting clinical contexts.\n\n"
-        f"==================================================\n"
-        f"{patient_section}\n"
-        f"==================================================\n"
-        f"{rag_section}\n"
-        f"==================================================\n"
-        f"{kg_section}\n"
-        f"==================================================\n\n"
-        f"{JSON_SCHEMA_INSTRUCTION}\n\n"
-        f"Begin analysis. Return ONLY the JSON object."
-    )
-    
+        # Build RAG text block
+        rag_lines = []
+        for idx, case in enumerate(active_cases, 1):
+            line = (
+                f"[Case {idx}] Score: {case['score']:.4f}\n"
+                f"  - Diagnosis: {case['ground_truth']}\n"
+                f"  - Supporting Symptoms: {', '.join(case['symptoms'])}"
+            )
+            rag_lines.append(line)
+        rag_section = "Top Similar Cases:\n" + "\n\n".join(rag_lines)
+        
+        # Build KG text block (only for conditions remaining in trimmed similar cases)
+        kg_lines = []
+        for item in processed_kg_evidence:
+            if item["disease"] in active_diagnoses:
+                line = (
+                    f"- Disease: {item['disease']} (ICD-10: {item['icd10']}, Severity: {item['severity']})\n"
+                    f"  - Matched Symptoms: {', '.join(item['matched'])}\n"
+                    f"  - Supporting Symptoms Patient Lacks: {', '.join(item['missing'])}"
+                )
+                kg_lines.append(line)
+        kg_section = "Knowledge Graph Evidence:\n" + "\n\n".join(kg_lines)
+        
+        # Build full prompt
+        prompt = (
+            f"Generate explainable diagnostic reasoning based on the following patient presentation "
+            f"and supporting clinical contexts.\n\n"
+            f"==================================================\n"
+            f"{patient_section}\n"
+            f"==================================================\n"
+            f"{rag_section}\n"
+            f"==================================================\n"
+            f"{kg_section}\n"
+            f"==================================================\n\n"
+            f"{JSON_SCHEMA_INSTRUCTION}\n\n"
+            f"Begin analysis. Return ONLY the JSON object."
+        )
+        
+        # Stop trimming if length is safe or we reached minimum of 2 RAG cases
+        if len(prompt) <= max_chars or rag_count <= 2:
+            break
+            
+        # Trim context by dropping lowest scoring RAG case
+        rag_count -= 1
+        
     return prompt
