@@ -57,11 +57,18 @@ MedAssist AI addresses this gap by combining:
 * Implemented a `faiss.IndexFlatIP` (Inner Product) search database representing exact Cosine Similarity.
 * Applied bucket sorting optimizations by character length to minimize padding overhead, reducing CPU encoding time from 57 minutes to ~19 minutes.
 
+### Phase 3: Medical Knowledge Graph Construction
+* Constructed a directed Clinical Knowledge Graph (`nx.DiGraph()`) linking diseases to symptoms dynamically.
+* Structured node metadata representing `icd10`, `severity`, `evidence_id`, and original English questions.
+* Implemented a regex-based translation strategy resolving raw clinical queries to clean, normalized node labels (e.g., *"Sore throat"*).
+* Developed query APIs retrieving symptoms for a disease, diseases for a symptom, and generating natural clinical explanations showing diagnostic overlaps.
+* Serialized graph structure using `pickle` for sub-millisecond retrieval operations.
+
 ---
 
 ## 🛠️ Technology Stack
 * **Language**: Python 3.14
-* **AI/ML Layer**: PyTorch, Transformers, BioClinicalBERT, FAISS-CPU, Sentence-Transformers
+* **AI/ML Layer**: PyTorch, Transformers, BioClinicalBERT, FAISS-CPU, Sentence-Transformers, NetworkX (Graph reasoning)
 * **Parsing/Data**: Pandas, Pydantic, JSONLines
 * **Testing Suite**: Pytest, TQDM
 
@@ -94,9 +101,18 @@ Run the retriever verification test suite to check similarity queries:
 python backend/scripts/test_retriever.py
 ```
 
+### 5. Build and Verify Medical Knowledge Graph
+Construct the knowledge graph and verify lookup APIs and clinical explanation text:
+```bash
+# Build the graph pickle
+python backend/knowledge_graph/graph_builder.py
+
+# Verify the queries
+python backend/scripts/test_knowledge_graph.py
+```
+
 ---
 
 ## 🔮 Future Roadmap
-* **Phase 3**: Construct a Medical Knowledge Graph using NetworkX to map pathological relationships.
 * **Phase 4**: Integrate LangChain/LLM API for medical reasoning and differential diagnosis justification.
 * **Phase 5**: Create a React + TypeScript frontend dashboard for clinical case queries and graph visualizations.

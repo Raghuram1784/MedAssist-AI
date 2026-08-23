@@ -23,5 +23,8 @@ datasets/
 backend/rag/faiss_index/*.index
 backend/rag/faiss_index/*.json
 
+# Compiled knowledge graph pickle files
+backend/knowledge_graph/*.pkl
+
 # Environments
 .env
