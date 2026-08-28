@@ -154,15 +154,15 @@ export default function App() {
           {/* Dashboard Header Banner */}
           <header className="h-14 bg-white border-b border-[#E2E8F0] px-6 flex items-center justify-between shadow-sm shrink-0">
             <div>
-              <h2 className="font-extrabold text-xs tracking-wider uppercase text-slate-450 leading-none">
-                {activeTab === "dashboard" ? "Dashboard Overview" :
+              <h2 className="font-extrabold text-sm text-[#0F172A] leading-tight">
+                {activeTab === "dashboard" ? "Dashboard" :
                  activeTab === "assessment" ? "Clinical Case Workspace" :
-                 activeTab === "methodology" ? "System Methodology" : "About MedAssist AI"}
+                 activeTab === "methodology" ? "Clinical Methodology" : "About MedAssist AI"}
               </h2>
-              <p className="text-[10px] text-[#64748B] mt-0.5 leading-none font-medium">
-                {activeTab === "dashboard" ? "General overview of the MedAssist CDSS pipeline" :
-                 activeTab === "assessment" ? "Input patient metrics and trigger RAG diagnosis" :
-                 activeTab === "methodology" ? "Topological graph verification & neural embeddings" : "Research prototype scope & constraints"}
+              <p className="text-[10px] text-[#64748B] mt-0.5 font-medium leading-none">
+                {activeTab === "dashboard" ? "Overview of the MedAssist AI clinical decision support system" :
+                 activeTab === "assessment" ? "Input patient metrics and trigger evidence-grounded analysis" :
+                 activeTab === "methodology" ? "Multi-layer clinical reasoning combining semantic search and knowledge graphs" : "Research prototype constraints & safety scope"}
               </p>
             </div>
 
@@ -182,7 +182,7 @@ export default function App() {
 
           {/* Scrollable View Area */}
           <ScrollArea className="flex-1 overflow-y-auto">
-            <div className="p-6 max-w-6xl mx-auto space-y-6">
+            <div className="p-6 max-w-[1550px] mx-auto space-y-6">
               
               {/* VIEW 1: DASHBOARD */}
               {activeTab === "dashboard" && (
@@ -203,6 +203,7 @@ export default function App() {
                       icon={Database}
                       iconBgColor="bg-indigo-50"
                       iconColor="text-[#4F46E5]"
+                      accentColor="border-t-2 border-t-[#4F46E5]"
                     />
                     <MetricCard 
                       value="768" 
@@ -211,6 +212,7 @@ export default function App() {
                       icon={Cpu}
                       iconBgColor="bg-violet-50"
                       iconColor="text-[#7C3AED]"
+                      accentColor="border-t-2 border-t-[#7C3AED]"
                     />
                     <MetricCard 
                       value="271" 
@@ -219,6 +221,7 @@ export default function App() {
                       icon={Layers}
                       iconBgColor="bg-cyan-50"
                       iconColor="text-[#06B6D4]"
+                      accentColor="border-t-2 border-t-[#06B6D4]"
                     />
                     <MetricCard 
                       value="888" 
@@ -227,6 +230,7 @@ export default function App() {
                       icon={TrendingUp}
                       iconBgColor="bg-emerald-50"
                       iconColor="text-emerald-600"
+                      accentColor="border-t-2 border-t-emerald-500"
                     />
                   </div>
 
@@ -269,10 +273,10 @@ export default function App() {
 
               {/* VIEW 2: CLINICAL ASSESSMENT TWO-COLUMN WORKSPACE */}
               {activeTab === "assessment" && (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6 items-start">
                   
-                  {/* Left Column: Intake Parameter form (35% width approx) */}
-                  <div className="lg:col-span-4 space-y-4">
+                  {/* Left Column: Intake Parameter form & Safety Notice (Sticky) */}
+                  <div className="lg:sticky lg:top-6 self-start space-y-4 shrink-0">
                     <PatientForm 
                       age={age}
                       setAge={setAge}
@@ -291,10 +295,11 @@ export default function App() {
                       errorMsg={errorMsg}
                       COMMON_DEMO_SYMPTOMS={COMMON_DEMO_SYMPTOMS}
                     />
+                    <SafetyNotice />
                   </div>
 
-                  {/* Right Column: Output Results Display (65% width approx) */}
-                  <div className="lg:col-span-8 space-y-6">
+                  {/* Right Column: Output Results Display */}
+                  <div className="min-w-0 space-y-6">
                     
                     {/* Idle State banner */}
                     {!isAnalyzing && !analysisResult && (

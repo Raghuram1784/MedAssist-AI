@@ -8,6 +8,7 @@ interface MetricCardProps {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   iconBgColor?: string;
   iconColor?: string;
+  accentColor?: string;
 }
 
 export default function MetricCard({ 
@@ -16,10 +17,11 @@ export default function MetricCard({
   description, 
   icon: Icon,
   iconBgColor = "bg-indigo-50",
-  iconColor = "text-indigo-600"
+  iconColor = "text-indigo-600",
+  accentColor = ""
 }: MetricCardProps) {
   return (
-    <Card className="shadow-sm border border-[#E2E8F0] hover:border-slate-350 transition-all duration-200 bg-white rounded-xl">
+    <Card className={`shadow-sm border border-[#E2E8F0] hover:border-slate-350 transition-all duration-200 bg-white rounded-xl ${accentColor}`}>
       <CardContent className="p-4 flex items-start gap-4">
         
         <div className={`p-2.5 rounded-xl ${iconBgColor} ${iconColor} shrink-0 mt-0.5`}>
