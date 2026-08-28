@@ -7,11 +7,10 @@ import {
   Info,
   User
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 interface SidebarProps {
-  activeTab: "dashboard" | "assessment" | "methodology" | "about";
-  setActiveTab: (tab: "dashboard" | "assessment" | "methodology" | "about") => void;
+  activeTab: "dashboard" | "assessment" | "methodology" | "about" | "history";
+  setActiveTab: (tab: "dashboard" | "assessment" | "methodology" | "about" | "history") => void;
   systemStatus: string;
 }
 
@@ -60,16 +59,17 @@ export default function Sidebar({ activeTab, setActiveTab, systemStatus }: Sideb
             New Assessment
           </button>
           
-          {/* Assessment History - Disabled / Coming Soon */}
-          <div className="w-full flex items-center justify-between gap-2 px-4 py-3 text-slate-500 rounded-lg text-xs font-semibold cursor-not-allowed hover:bg-slate-800/10">
-            <div className="flex items-center gap-3">
-              <History size={14} className="text-slate-600" />
-              <span>Assessment History</span>
-            </div>
-            <Badge className="bg-slate-800 text-[8px] font-bold px-1.5 py-0 border-0 text-slate-400 uppercase tracking-widest scale-90">
-              Soon
-            </Badge>
-          </div>
+          <button 
+            onClick={() => setActiveTab("history")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold tracking-tight transition-all ${
+              activeTab === "history" 
+                ? "bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] text-white shadow-md shadow-indigo-600/15" 
+                : "text-slate-400 hover:bg-slate-800/40 hover:text-slate-200"
+            }`}
+          >
+            <History size={14} className={activeTab === "history" ? "text-white" : "text-slate-400"} />
+            Assessment History
+          </button>
 
           <button 
             onClick={() => setActiveTab("methodology")}
@@ -118,12 +118,18 @@ export default function Sidebar({ activeTab, setActiveTab, systemStatus }: Sideb
 
         {/* User Card */}
         <div className="p-4 flex items-center gap-3">
-          <div className="h-8 w-8 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 border border-slate-700">
+          <div className="h-8 w-8 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 border border-slate-700 relative shrink-0">
             <User size={16} />
+            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 bg-emerald-500 border border-slate-900 rounded-full" />
           </div>
-          <div>
-            <h5 className="text-[11px] font-bold text-slate-200 leading-none">Research User</h5>
-            <span className="text-[9px] text-slate-500 font-medium">Clinical Researcher</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-1">
+              <h5 className="text-[11px] font-bold text-slate-200 leading-none truncate">Research User</h5>
+              <span className="text-[9px] text-amber-500 font-bold flex items-center shrink-0 gap-0.5 bg-amber-500/10 border border-amber-500/20 px-1 py-0.5 rounded leading-none">
+                🔥 12d
+              </span>
+            </div>
+            <span className="text-[9px] text-slate-500 font-medium block mt-0.5 truncate">Clinical Researcher</span>
           </div>
         </div>
 

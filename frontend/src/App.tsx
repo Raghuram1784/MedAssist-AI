@@ -12,6 +12,7 @@ import Sidebar from "@/components/layout/Sidebar";
 // Page Views
 import Dashboard from "./pages/Dashboard";
 import NewAssessment from "./pages/NewAssessment";
+import AssessmentHistory from "./pages/AssessmentHistory";
 import Methodology from "./pages/Methodology";
 import About from "./pages/About";
 
@@ -30,7 +31,7 @@ const COMMON_DEMO_SYMPTOMS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "assessment" | "methodology" | "about">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "assessment" | "methodology" | "about" | "history">("dashboard");
   const [systemStatus, setSystemStatus] = useState<"connecting" | "healthy" | "error">("connecting");
   
   // Intake Form parameters State
@@ -45,6 +46,9 @@ export default function App() {
   const [loadingStep, setLoadingStep] = useState<number>(0);
   const [analysisResult, setAnalysisResult] = useState<AnalyzeResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Toast notification state
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Monitor health checker of CDSS server
   useEffect(() => {
@@ -102,6 +106,33 @@ export default function App() {
       };
       const data = await analyzeCase(payload);
       setAnalysisResult(data);
+
+      // --- SAVE TO LOCALSTORAGE ASSESSMENT HISTORY ---
+      const historyItem = {
+        id: `assessment_${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        ...data
+      };
+      const storedStr = localStorage.getItem("medassist_assessment_history");
+      const stored = storedStr ? JSON.parse(storedStr) : [];
+
+      // Avoid duplication on rapid re-renders
+      const isDup = stored.some((item: any) => 
+        item.patient_summary.age === historyItem.patient_summary.age &&
+        item.patient_summary.sex === historyItem.patient_summary.sex &&
+        JSON.stringify(item.patient_summary.symptoms.sort()) === JSON.stringify(historyItem.patient_summary.symptoms.sort()) &&
+        item.patient_summary.additional_information === historyItem.patient_summary.additional_information &&
+        Math.abs(new Date(item.timestamp).getTime() - new Date(historyItem.timestamp).getTime()) < 10000
+      );
+
+      if (!isDup) {
+        const updated = [historyItem, ...stored];
+        localStorage.setItem("medassist_assessment_history", JSON.stringify(updated));
+        
+        // Show subtle non-blocking toast confirmation
+        setToastMessage("✓ Assessment saved to history");
+        setTimeout(() => setToastMessage(null), 3000);
+      }
     } catch (err: any) {
       const serverErr = err.response?.data?.detail || err.message || "An unknown error occurred during clinical analysis.";
       setErrorMsg(serverErr);
@@ -126,6 +157,16 @@ export default function App() {
     setErrorMsg(null);
   };
 
+  // Reopen a saved record without re-running API analysis
+  const handleViewRecord = (record: AnalyzeResponse) => {
+    setAge(record.patient_summary.age);
+    setSex(record.patient_summary.sex);
+    setSelectedSymptoms(record.patient_summary.symptoms);
+    setAdditionalInfo(record.patient_summary.additional_information || "");
+    setAnalysisResult(record);
+    setActiveTab("assessment");
+  };
+
   return (
     <TooltipProvider>
       <div className="flex h-screen bg-[#F7F9FC] overflow-hidden font-sans text-[#0F172A] antialiased">
@@ -139,16 +180,18 @@ export default function App() {
         <main className="flex-1 flex flex-col overflow-hidden">
           
           {/* Dashboard Header Banner */}
-          <header className="h-14 bg-white border-b border-[#E2E8F0] px-6 flex items-center justify-between shadow-sm shrink-0 print:hidden">
+          <header className="h-14 bg-white border-b border-[#E2E8F0] px-6 flex items-center justify-between shadow-sm shrink-0 print:hidden select-none">
             <div>
               <h2 className="font-extrabold text-sm text-[#0F172A] leading-tight">
                 {activeTab === "dashboard" ? "Dashboard" :
                  activeTab === "assessment" ? "Clinical Case Workspace" :
+                 activeTab === "history" ? "Assessment History" :
                  activeTab === "methodology" ? "Clinical Methodology" : "About MedAssist AI"}
               </h2>
               <p className="text-[10px] text-[#64748B] mt-0.5 font-medium leading-none">
                 {activeTab === "dashboard" ? "Overview of the MedAssist AI clinical decision support system" :
                  activeTab === "assessment" ? "Input patient metrics and trigger evidence-grounded analysis" :
+                 activeTab === "history" ? "Review and manage previously generated clinical report records" :
                  activeTab === "methodology" ? "Multi-layer clinical reasoning combining semantic search and knowledge graphs" : "Research prototype constraints & safety scope"}
               </p>
             </div>
@@ -161,7 +204,7 @@ export default function App() {
               <span className="px-2 py-0.5 bg-slate-100 rounded border border-slate-200 text-slate-600 font-semibold">
                 KG Nodes: 271
               </span>
-              <span className="px-2 py-0.5 bg-slate-100 rounded border border-slate-200 text-slate-600 font-semibold text-slate-450">
+              <span className="px-2 py-0.5 bg-slate-100 rounded border border-slate-200 text-slate-655 font-semibold">
                 KG Edges: 888
               </span>
             </div>
@@ -198,6 +241,13 @@ export default function App() {
                 />
               )}
 
+              {activeTab === "history" && (
+                <AssessmentHistory 
+                  onViewRecord={handleViewRecord} 
+                  setActiveTab={setActiveTab}
+                />
+              )}
+
               {activeTab === "methodology" && (
                 <Methodology />
               )}
@@ -210,6 +260,14 @@ export default function App() {
           </ScrollArea>
 
         </main>
+
+        {/* Global floating toast notification block */}
+        {toastMessage && (
+          <div className="fixed bottom-5 right-5 bg-[#07152E] text-white border border-[#4F46E5]/40 text-xs px-4 py-2.5 rounded-lg shadow-lg font-bold select-none tracking-wide z-50 flex items-center gap-2 animate-bounce">
+            <span className="text-emerald-400">✓</span>
+            {toastMessage}
+          </div>
+        )}
 
       </div>
     </TooltipProvider>

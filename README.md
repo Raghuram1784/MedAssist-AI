@@ -74,6 +74,11 @@ MedAssist AI addresses this gap by combining:
 * Developed FastAPI service with asynchronous request handling for diagnostic workflows.
 * Implemented React dashboard with real-time streaming of clinical reasoning steps.
 * Configured automated CI/CD pipeline for model verification and integration testing.
+* **Assessment History Workspace**: Implemented a persistent, client-side history dashboard using versioned browser `localStorage` (`medassist_assessment_history`).
+* **Instant Reopen & Zero API Costs**: Reopens historical patient cohorts, NetworkX validation checks, and Groq LLM rationales instantly with zero extra API server requests.
+* **Direct Client-Side PDF Generation**: Integrated `jsPDF` and `jspdf-autotable` to dynamically compile clinical reports with vector borders and download directly without utilizing print dialogs.
+* **Search, Filters & Local Deletion**: Allowed keyword searches over symptom tags and conditions, sorting by date, and deleting items with shadcn `AlertDialog` protection.
+* **Privacy Notice**: Rendered localized browser storage warnings explaining that data does not synchronize with any remote patient database.
 
 ---
 

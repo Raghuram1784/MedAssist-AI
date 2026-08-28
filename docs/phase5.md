@@ -188,3 +188,33 @@ To run automated checks verifying endpoint structures and model retrievals:
 .venv\Scripts\python.exe backend/api/test_api.py
 ```
 This executes health checks, demographics validation limits (rejecting invalid ages and sex values), and triggers the end-to-end clinical reasoning pipelines for our test queries.
+
+---
+
+## 8. Client-Side Persistence & Assessment History (Phase 5.5 Update)
+
+To provide clinical researchers with a searchable record of past assessments without incurring duplicate server fees or Groq API costs, a local persistence and history workstation has been integrated.
+
+### 8.1. Data Lifecycle & localStorage
+* **Automatic Save**: Once FastAPI `/api/analyze` yields a `200 OK` response, the full payload (containing candidate conditions, similar cases, NetworkX graph matches, and rationales) is immediately serialized and appended to browser `localStorage` under the key `medassist_assessment_history`.
+* **Idempotency Check**: An identity hash check matches patient age, sex, symptom lists, and additional narratives to filter out duplicate records from strict mode re-renders.
+* **Storage Schema**:
+  ```typescript
+  interface SavedAssessment extends AnalyzeResponse {
+    id: string;      // assessment_${timestamp}
+    timestamp: string; // ISO date string
+  }
+  ```
+
+### 8.2. Workstation Search & Filters
+* **Keyword Matching**: A custom filter matches searches against presenting symptoms, diagnosed conditions, age parameters, or generated date strings.
+* **Sorting & Facet Filters**: Users can toggle sorting direction by timestamp (`Newest` or `Oldest`) and filter records by decision confidence bounds (`High`, `Medium`, or `Low`).
+* **Delete Actions**: Integrates a shadcn `AlertDialog` that prompts researchers before removing any record from the browser.
+
+### 8.3. Offline Reopen (Zero API Costs)
+* Clicking **View** on any history record maps the stored variables directly back into the application states (`age`, `sex`, `symptoms`, `analysisResult`), instantly loading the entire differential layout. 
+* This completely eliminates LLM inference latency and saves server compute.
+
+### 8.4. HIPAA & Safety Scopes
+* **Disclaimer Banner**: A warning note is displayed at the bottom of the log table: *"Assessment history is stored locally in this browser cache and is not synchronized with any remote patient database."*
+* **Compliance Statement**: The system does not claim HIPAA compliance, as it is a research prototype storing data purely in transient local storage. Data is never shared or synchronized with third parties.
