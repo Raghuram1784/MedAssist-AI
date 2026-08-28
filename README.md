@@ -13,8 +13,8 @@ MedAssist AI addresses this gap by combining:
 * **Retrieval-Augmented Generation (RAG)**: Anchoring diagnoses by retrieving similar historical patient cohorts.
 * **BioClinicalBERT Embeddings**: Computing highly specialized medical semantic representations.
 * **FAISS Vector Search**: Running high-speed cosine similarity match queries.
-* **Medical Knowledge Graphs**: Performing multi-hop reasoning over pathological relationships (Future Phase).
-* **LLM Explainable Diagnostic Reasoning**: Grounding clinical recommendations to prevent hallucinations (Future Phase).
+* **Medical Knowledge Graphs**: Performing topological validation checks over disease-symptom pathways.
+* **LLM Explainable Diagnostic Reasoning**: Grounding clinical recommendations to prevent hallucinations using retrieved evidence.
 
 ---
 
@@ -36,10 +36,10 @@ MedAssist AI addresses this gap by combining:
       FAISS Clinical Case Retrieval (Cosine Similarity)
                    │
                    ▼
-     Knowledge Graph Multi-Hop Reasoning  <── [Future Phase]
+      Knowledge Graph Topological Validation
                    │
                    ▼
-      LLM Explainable Diagnostic Support  <── [Future Phase]
+       LLM Grounded Diagnostic Reasoning
 ```
 
 ---
@@ -70,6 +70,11 @@ MedAssist AI addresses this gap by combining:
 * Enforced prompt constraints restricting the LLM to an advisory reasoning layer, banning standalone diagnostics.
 * Structured parsing logic to clean completion tokens and deserialize compliant JSON output including a custom confidence level assessment.
 
+### Phase 5: Production API & Frontend Integration
+* Developed FastAPI service with asynchronous request handling for diagnostic workflows.
+* Implemented React dashboard with real-time streaming of clinical reasoning steps.
+* Configured automated CI/CD pipeline for model verification and integration testing.
+
 ---
 
 ## 🧠 LLM Reasoning Architecture
@@ -95,13 +100,13 @@ The reasoning pipeline grounds the LLM reasoning process using a double-barrier 
                        ▼
             ┌──────────────────────┐
             │   Groq LLM Client    │
-            │   (groq/compound)    │
+            │ (groq/compound-mini) │
             └──────────┬───────────┘
                        ▼
             ┌──────────────────────┐
             │ Explainable Clinical │
             │   Support Response   │
-            └──────────────────────┘
+            └──────────┬───────────┘
 ```
 
 ### Why the LLM is Not Used Standalone
@@ -136,7 +141,7 @@ pip install -r backend/requirements.txt
 Create a `.env` file at the project root matching the template in `.env.example`:
 ```env
 GROK_API_KEY=your_groq_api_key_here
-GROQ_MODEL=groq/compound
+GROQ_MODEL=groq/compound-mini
 ```
 
 ### 2. Run Preprocessing Pipeline
@@ -173,7 +178,22 @@ Execute the CDSS reasoning pipeline combining RAG, KG lookup, and Groq API calls
 python backend/scripts/test_llm_reasoning.py
 ```
 
----
+### 7. Run Full-Stack Web Application Backend (FastAPI)
+Initialize the models and start the API server on port 8000:
+```bash
+.venv\Scripts\python.exe -m uvicorn backend.api.main:app --port 8000
+```
 
-## 🔮 Future Roadmap
-* **Phase 5**: Create a React + TypeScript frontend dashboard for clinical case queries and graph visualizations.
+### 8. Run Full-Stack Web Application Frontend (React)
+Start the dashboard client at `http://localhost:5173/`:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### 9. Verify End-to-End API Integration Suite
+Run automated endpoint validation checks:
+```bash
+.venv\Scripts\python.exe backend/api/test_api.py
+```

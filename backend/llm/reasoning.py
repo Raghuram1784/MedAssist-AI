@@ -89,6 +89,10 @@ class ClinicalReasoningSystem:
                 item.get("explanation") for item in kg_evidence if "explanation" in item
             ]
             
+            # Append raw retrieval contexts for orchestration layer consumption
+            parsed_json["similar_cases"] = similar_cases
+            parsed_json["kg_evidence"] = kg_evidence
+            
             return parsed_json
             
         except Exception as e:
@@ -105,7 +109,9 @@ class ClinicalReasoningSystem:
                 "explanation": (
                     f"A JSON parsing error occurred when decoding the LLM response. "
                     f"Raw completion: {raw_response}"
-                )
+                ),
+                "similar_cases": similar_cases,
+                "kg_evidence": kg_evidence
             }
             
     def _clean_json_string(self, text: str) -> str:
