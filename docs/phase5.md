@@ -120,7 +120,39 @@ The clinical dataflow follows a strict grounding path to ensure evidence-based r
 
 ---
 
-## 4. How Existing Phases are Reused
+## 4. Redesigned Frontend Component Architecture
+
+The client application has been modularized into domain-specific reusable components under `frontend/src/components/`:
+
+### 4.1. Layout Components (`components/layout/`)
+* **`Sidebar.tsx`**: A dark navy navigation panel housing triggers for Dashboard, Assessment, and Methodology, along with a live engines health indicator.
+
+### 4.2. Dashboard Components (`components/dashboard/`)
+* **`HeroCard.tsx`**: Renders the welcome banner using the indigo/violet/cyan gradient and custom stethoscope vector outlines.
+* **`MetricCard.tsx`**: Multi-instance numeric card representing indexed cases, dimensions, nodes, and relationships.
+* **`HowItWorks.tsx`**: Flowchart detailing the pipeline stages.
+
+### 4.3. Assessment Components (`components/assessment/`)
+* **`PatientForm.tsx`**: Case form carrying input bounds validation, symptom selector suggestions, and additional narrative text areas.
+* **`AnalysisProgress.tsx`**: A progress stepper rendering pipeline steps with checkmarks or spinning states.
+
+### 4.4. Results Components (`components/results/`)
+* **`PatientSummary.tsx`**: Results header card laying out demographics summary, confidence gauges, and quantitative match counts.
+* **`ConditionCard.tsx`**: Ranked condition accordion detailing matched symptoms vs absent indicators.
+* **`SimilarCasesTable.tsx`**: Formats RAG database matches as rows carrying progress bars.
+* **`KnowledgeGraphEvidence.tsx`**: Compact evidence matrix mapping symptoms matching status across candidate diseases.
+* **`ClinicalRationale.tsx`**: Grounded rationale card displaying narrative logs.
+* **`SafetyNotice.tsx`**: Alerts physicians regarding CDSS prototyping bounds.
+
+### 4.5. Pipeline Components (`components/pipeline/`)
+* **`PipelineTimeline.tsx`**: Visual flowchart representing database retrieval and inference steps.
+
+### 4.6. Methodology Components (`components/methodology/`)
+* **`MethodologyCard.tsx`**: Cards showing technology stack layers and components.
+
+---
+
+## 5. How Existing Phases are Reused
 
 The FastAPI backend functions exclusively as the orchestration layer:
 * **Startup Event (Lifespan)**: During server startup, the application loads the **BioClinicalBERT encoder weights**, instantiates the **FAISS case retriever index**, and loads the serialized NetworkX **medical graph pickle**. These are configured globally in `app.state.reasoning_system`.
@@ -128,7 +160,7 @@ The FastAPI backend functions exclusively as the orchestration layer:
 
 ---
 
-## 5. Deployment & Execution Instructions
+## 6. Deployment & Execution Instructions
 
 ### 5.1. Start Backend Server
 Run the FastAPI application from the project root directory:
@@ -149,7 +181,7 @@ The application will launch at `http://localhost:5173/`.
 
 ---
 
-## 6. Verification & Automated Tests
+## 7. Verification & Automated Tests
 
 To run automated checks verifying endpoint structures and model retrievals:
 ```bash
