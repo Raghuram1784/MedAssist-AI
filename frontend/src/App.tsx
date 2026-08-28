@@ -131,13 +131,15 @@ export default function App() {
       <div className="flex h-screen bg-[#F7F9FC] overflow-hidden font-sans text-[#0F172A] antialiased">
         
         {/* Navigation Sidebar */}
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} systemStatus={systemStatus} />
+        <div className="print:hidden flex shrink-0">
+          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} systemStatus={systemStatus} />
+        </div>
 
         {/* Core Main content */}
         <main className="flex-1 flex flex-col overflow-hidden">
           
           {/* Dashboard Header Banner */}
-          <header className="h-14 bg-white border-b border-[#E2E8F0] px-6 flex items-center justify-between shadow-sm shrink-0">
+          <header className="h-14 bg-white border-b border-[#E2E8F0] px-6 flex items-center justify-between shadow-sm shrink-0 print:hidden">
             <div>
               <h2 className="font-extrabold text-sm text-[#0F172A] leading-tight">
                 {activeTab === "dashboard" ? "Dashboard" :
