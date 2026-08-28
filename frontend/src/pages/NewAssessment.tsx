@@ -9,9 +9,9 @@ import KnowledgeGraphEvidence from "@/components/results/KnowledgeGraphEvidence"
 import SimilarCasesTable from "@/components/results/SimilarCasesTable";
 import ClinicalRationale from "@/components/results/ClinicalRationale";
 import PipelineTimeline from "@/components/pipeline/PipelineTimeline";
-import ClinicalReport from "@/components/results/ClinicalReport";
 import { Button } from "@/components/ui/button";
 import type { AnalyzeResponse } from "../types";
+import { generateAssessmentPDF } from "../lib/pdfGenerator";
 
 interface NewAssessmentProps {
   age: number | "";
@@ -57,42 +57,26 @@ export default function NewAssessment({
   const [isDownloading, setIsDownloading] = useState(false);
 
   const handleDownloadReport = () => {
+    if (!analysisResult) return;
     setIsDownloading(true);
-    
-    // Create formatted timestamp for filename
-    const timestamp = new Date().toLocaleString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false
-    }).replace(/[\/\s:]/g, "-");
-    
-    const originalTitle = document.title;
-    document.title = `MedAssist_AI_Assessment_${timestamp}`;
     
     setTimeout(() => {
       try {
-        window.print();
+        generateAssessmentPDF(analysisResult);
+        alert("Report downloaded successfully.");
       } catch (err) {
         console.error("Report generation failed:", err);
-        alert("Failed to initialize system printing for clinical report.");
+        alert("Unable to generate report. Please try again.");
       } finally {
-        document.title = originalTitle;
         setIsDownloading(false);
       }
-    }, 600);
+    }, 800);
   };
 
   return (
     <>
-      {/* 1. Printable Clinical Report View (Visible only during print preview) */}
-      <ClinicalReport result={analysisResult} />
-
-      {/* 2. Main Assessment UI Workstation (Hidden during printing) */}
-      <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6 items-start print:hidden">
+      {/* Main Assessment UI Workstation */}
+      <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6 items-start">
         
         {/* Left Column: Intake Parameter form & Safety Notice (Sticky) */}
         <div className="lg:sticky lg:top-6 self-start space-y-4 shrink-0">
