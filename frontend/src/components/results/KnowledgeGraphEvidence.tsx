@@ -28,9 +28,9 @@ export default function KnowledgeGraphEvidence({ kgSupport }: KnowledgeGraphEvid
   return (
     <Card className="shadow-sm border border-[#E2E8F0] bg-white rounded-xl select-none">
       <CardHeader className="pb-3">
-        <CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider">Knowledge Graph Evidence Overview</CardTitle>
+        <CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider">Knowledge Graph Evidence</CardTitle>
         <CardDescription className="text-xs">
-          Evidence pathways for top candidate conditions.
+          Evidence verification pathways for top candidate conditions.
         </CardDescription>
       </CardHeader>
 

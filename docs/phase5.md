@@ -191,29 +191,31 @@ This executes health checks, demographics validation limits (rejecting invalid a
 
 ---
 
-## 8. Client-Side Persistence & Assessment History (Phase 5.5 Update)
+## 8. Client-Side Persistence & Assessment History (Phase 5.1 Update)
 
 To provide clinical researchers with a searchable record of past assessments without incurring duplicate server fees or Groq API costs, a local persistence and history workstation has been integrated.
 
 ### 8.1. Data Lifecycle & localStorage
-* **Automatic Save**: Once FastAPI `/api/analyze` yields a `200 OK` response, the full payload (containing candidate conditions, similar cases, NetworkX graph matches, and rationales) is immediately serialized and appended to browser `localStorage` under the key `medassist_assessment_history`.
-* **Idempotency Check**: An identity hash check matches patient age, sex, symptom lists, and additional narratives to filter out duplicate records from strict mode re-renders.
+* **Automatic Save**: Once FastAPI `/api/analyze` yields a `200 OK` response, the full payload (containing patient demographics, symptoms, narrative, candidate conditions, similar cases, NetworkX graph matches, and LLM rationale) is immediately serialized and appended to browser `localStorage` under the key `medassist_assessment_history`.
+* **Distinct Re-analysis Tracking**: If a user runs an analysis for the same patient again, it is stored as a separate assessment entry with a new timestamp.
+* **No Sensitive Credentials**: No API keys, credentials, or remote database configs are stored in `localStorage`.
 * **Storage Schema**:
   ```typescript
   interface SavedAssessment extends AnalyzeResponse {
-    id: string;      // assessment_${timestamp}
+    id: string;        // assessment_${timestamp}_${random}
     timestamp: string; // ISO date string
   }
   ```
 
-### 8.2. Workstation Search & Filters
-* **Keyword Matching**: A custom filter matches searches against presenting symptoms, diagnosed conditions, age parameters, or generated date strings.
-* **Sorting & Facet Filters**: Users can toggle sorting direction by timestamp (`Newest` or `Oldest`) and filter records by decision confidence bounds (`High`, `Medium`, or `Low`).
-* **Delete Actions**: Integrates a shadcn `AlertDialog` that prompts researchers before removing any record from the browser.
+### 8.2. Workstation Search, Filters & Mobile Responsive Design
+* **Keyword Search**: Performs live matching against symptoms, top condition matches, alternative conditions, patient age/sex, clinical narrative, and dates.
+* **Sorting & Facet Filters**: Users can toggle sorting direction by date (`Newest` or `Oldest`) and filter records by decision confidence bounds (`High`, `Medium`, or `Low`).
+* **Desktop & Mobile Responsive Layout**: Renders as a clean shadcn `Table` on desktop screens (displaying Date & Time, Patient, Symptoms, Top Condition, Confidence, RAG Cases Count, and Actions) and as stacked cards on mobile viewports (`block md:hidden`).
+* **Confirmation Delete**: Integrates a shadcn `AlertDialog` that prompts researchers before removing any record from `localStorage`.
 
-### 8.3. Offline Reopen (Zero API Costs)
-* Clicking **View** on any history record maps the stored variables directly back into the application states (`age`, `sex`, `symptoms`, `analysisResult`), instantly loading the entire differential layout. 
-* This completely eliminates LLM inference latency and saves server compute.
+### 8.3. Offline Reopen & Direct PDF Downloads
+* **View Record (Zero API Costs)**: Clicking **View** on any history record populates the stored parameters into state (`age`, `sex`, `symptoms`, `additionalInfo`, `analysisResult`), instantly displaying the original analysis workspace without re-running the AI model or invoking `/api/analyze`.
+* **Report Downloader**: Clicking **Download Report** from any historical record compiles the exact saved assessment data into a PDF (`MedAssist_AI_Assessment_<timestamp>.pdf`) using `jsPDF` and `jspdf-autotable`.
 
 ### 8.4. HIPAA & Safety Scopes
 * **Disclaimer Banner**: A warning note is displayed at the bottom of the log table: *"Assessment history is stored locally in this browser cache and is not synchronized with any remote patient database."*

@@ -109,29 +109,38 @@ export default function App() {
 
       // --- SAVE TO LOCALSTORAGE ASSESSMENT HISTORY ---
       const historyItem = {
-        id: `assessment_${Date.now()}`,
+        id: `eval_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         timestamp: new Date().toISOString(),
         ...data
       };
-      const storedStr = localStorage.getItem("medassist_assessment_history");
-      const stored = storedStr ? JSON.parse(storedStr) : [];
+      
+      try {
+        const storedStr = localStorage.getItem("medassist_assessment_history");
+        let stored: any[] = [];
+        if (storedStr) {
+          const parsed = JSON.parse(storedStr);
+          if (Array.isArray(parsed)) stored = parsed;
+        }
 
-      // Avoid duplication on rapid re-renders
-      const isDup = stored.some((item: any) => 
-        item.patient_summary.age === historyItem.patient_summary.age &&
-        item.patient_summary.sex === historyItem.patient_summary.sex &&
-        JSON.stringify(item.patient_summary.symptoms.sort()) === JSON.stringify(historyItem.patient_summary.symptoms.sort()) &&
-        item.patient_summary.additional_information === historyItem.patient_summary.additional_information &&
-        Math.abs(new Date(item.timestamp).getTime() - new Date(historyItem.timestamp).getTime()) < 10000
-      );
+        // Avoid duplication on rapid re-renders
+        const isDup = stored.some((item: any) => 
+          item.patient_summary.age === historyItem.patient_summary.age &&
+          item.patient_summary.sex === historyItem.patient_summary.sex &&
+          JSON.stringify(item.patient_summary.symptoms.slice().sort()) === JSON.stringify(historyItem.patient_summary.symptoms.slice().sort()) &&
+          item.patient_summary.additional_information === historyItem.patient_summary.additional_information &&
+          Math.abs(new Date(item.timestamp).getTime() - new Date(historyItem.timestamp).getTime()) < 1000
+        );
 
-      if (!isDup) {
-        const updated = [historyItem, ...stored];
-        localStorage.setItem("medassist_assessment_history", JSON.stringify(updated));
-        
-        // Show subtle non-blocking toast confirmation
-        setToastMessage("✓ Assessment saved to history");
-        setTimeout(() => setToastMessage(null), 3000);
+        if (!isDup) {
+          const updated = [historyItem, ...stored];
+          localStorage.setItem("medassist_assessment_history", JSON.stringify(updated));
+          
+          // Show subtle non-blocking toast confirmation
+          setToastMessage("✓ Assessment saved to history");
+          setTimeout(() => setToastMessage(null), 3000);
+        }
+      } catch (storageErr) {
+        console.error("Failed to persist assessment to localStorage:", storageErr);
       }
     } catch (err: any) {
       const serverErr = err.response?.data?.detail || err.message || "An unknown error occurred during clinical analysis.";

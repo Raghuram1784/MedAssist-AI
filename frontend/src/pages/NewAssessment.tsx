@@ -126,29 +126,51 @@ export default function NewAssessment({
           {analysisResult && (
             <div className="space-y-5">
               
-              <div className="flex justify-between items-center select-none">
-                <h3 className="font-extrabold text-[#0F172A] text-sm tracking-tight">Clinical Assessment Results</h3>
-                <div className="flex items-center gap-2">
+              {/* Results Header */}
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 select-none pb-1 border-b border-slate-200/80">
+                <div>
+                  <h3 className="font-black text-slate-900 text-base tracking-tight flex items-center gap-2">
+                    Clinical Assessment Results
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Evidence-grounded differential analysis
+                  </p>
+                  
+                  {/* Metadata Badges */}
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Assessment Complete
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                      {analysisResult.similar_cases.length} Similar Cases
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      {analysisResult.possible_conditions.length} Candidate Conditions
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
                   <Button 
                     onClick={handleDownloadReport} 
                     variant="outline" 
                     size="sm" 
                     disabled={isDownloading}
-                    className="h-7 text-[10px] gap-1.5 px-3 font-bold uppercase tracking-wider text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 bg-white cursor-pointer rounded-lg shrink-0"
+                    className="h-8 text-xs gap-2 px-3.5 font-bold text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 bg-white cursor-pointer rounded-lg shadow-xs transition-all"
                   >
                     {isDownloading ? (
                       <>
-                        <Loader2 size={11} className="animate-spin" />
+                        <Loader2 size={13} className="animate-spin text-indigo-600" />
                         Generating Report...
                       </>
                     ) : (
                       <>
-                        <Download size={11} className="stroke-[2.5]" />
+                        <Download size={13} className="stroke-[2.5]" />
                         Download Report
                       </>
                     )}
                   </Button>
-                  <span className="text-[10px] text-slate-400 font-mono">Completed</span>
                 </div>
               </div>
 
