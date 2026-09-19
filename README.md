@@ -3,7 +3,7 @@
 ### AI-Assisted Clinical Decision Support System
 **Clinical NLP + Retrieval-Augmented Generation + Knowledge Graph Reasoning**
 
-MedAssist AI is an advanced research and educational Clinical Decision Support System (CDSS) prototype designed to assist healthcare professionals by analyzing complex patient presentations and generating evidence-grounded differential assessments. By combining domain-specific clinical embeddings, vector similarity search, structured graph verification, and Large Language Model (LLM) reasoning, MedAssist AI delivers transparent, interpretable, and reproducible clinical decision support.
+MedAssist AI is a research and educational Clinical Decision Support System (CDSS) prototype designed to analyze patient clinical presentations and generate an evidence-grounded differential assessment. By combining domain-specific clinical embeddings, vector similarity search, structured graph verification, and Large Language Model (LLM) reasoning, MedAssist AI delivers transparent, interpretable, and reproducible clinical decision support.
 
 ---
 
@@ -12,8 +12,8 @@ MedAssist AI is an advanced research and educational Clinical Decision Support S
 Traditional diagnostic assistance models often operate as opaque "black boxes" or rely purely on ungrounded language model prompts. MedAssist AI addresses these challenges through a hybrid multi-layer clinical reasoning architecture:
 
 1. **BioClinicalBERT**: Generates dense 768-dimensional clinical semantic embeddings from patient narratives.
-2. **FAISS Vector Retrieval**: Conducts sub-millisecond similarity searches across **10,000 historical case cohorts** derived from the DDXPlus dataset.
-3. **NetworkX Knowledge Graph**: Verifies structured disease-evidence relationships across **271 nodes and 888 directed edges**.
+2. **FAISS Vector Retrieval**: Conducts efficient similarity search across **10,000 indexed clinical cases** derived from the DDXPlus dataset.
+3. **NetworkX Knowledge Graph**: Checks disease-symptom/evidence relationships across **271 nodes and 888 directed edges**.
 4. **Groq LLM (`llama3-70b-8192`)**: Synthesizes retrieved evidence, graph pathways, and candidate conditions into a structured, evidence-grounded differential assessment.
 5. **Modern React Dashboard**: Presents candidate conditions, evidence verification matrices, historical case matches, similarity percentages, and exportable PDF reports.
 
@@ -26,7 +26,7 @@ Clinical decision support tools face several key engineering and algorithmic cha
 * **Semantic Complexity**: Clinical narratives contain dense, unstructured text where traditional keyword matching fails to capture subtle symptom interactions.
 * **LLM Hallucinations**: Standard LLMs can generate plausible yet ungrounded diagnostic claims if not constrained by verified medical facts.
 * **Lack of Interpretability**: Clinicians require clear evidence pathways—such as matched vs. missing symptoms and historical precedent—rather than isolated condition predictions.
-* **Performance & Scale**: Similarity retrieval over thousands of patient cohorts requires sub-millisecond vector indexing.
+* **Evidence Grounding**: Similar historical cases provide contextual evidence, while structured disease/symptom relationships provide an additional deterministic verification layer.
 
 ---
 
@@ -35,17 +35,17 @@ Clinical decision support tools face several key engineering and algorithmic cha
 MedAssist AI implements a hybrid pipeline where every stage reinforces clinical explainability:
 
 ```
-Patient Input  ──►  BioClinicalBERT (768-D)  ──►  FAISS (Top-5 Cohorts)
+Patient Input  ──►  BioClinicalBERT (768-D)  ──►  FAISS (Top-5 Cases)
                                                           │
                                                           ▼
 React Dashboard  ◄──  Groq LLM Synthesizer  ◄──  NetworkX Knowledge Graph
 ```
 
-* **BioClinicalBERT** captures deep domain-specific medical semantics.
-* **FAISS** grounds reasoning in similar historical patient cases.
-* **NetworkX Knowledge Graph** validates candidate conditions against deterministic clinical rules.
-* **Groq LLM** synthesizes all retrieved context without generating ungrounded diagnoses.
-* **React + shadcn/ui** provides a polished, interactive workstation for clinical review.
+* **BioClinicalBERT** captures domain-specific clinical language representation.
+* **FAISS** grounds reasoning in similar historical cases derived from DDXPlus.
+* **NetworkX Knowledge Graph** checks structured disease/symptom relationships and identifies matched, unreported, and contradictory findings.
+* **Groq LLM** synthesizes retrieved evidence and context into a structured assessment without acting as the sole diagnostic authority.
+* **React + shadcn/ui** provides a modern, responsive clinical workstation.
 
 ---
 
@@ -73,14 +73,14 @@ graph TD
 
 ## 🔬 Clinical Reasoning Pipeline
 
-### 1. Patient Intake & Narrative Generation
-The clinician inputs patient demographics (age, sex), presenting symptoms, and optional narrative notes. The backend synthesizes structured inputs into a normalized clinical presentation text string.
+### 1. Patient Input & Narrative Representation
+The clinician inputs patient demographics (age, sex), presenting symptoms, and optional narrative notes. The system constructs a normalized clinical presentation representation string.
 
 ### 2. BioClinicalBERT Representation
 Using `Emilyalsentzer/Bio_ClinicalBERT`, the clinical narrative is tokenized (max sequence length 128) and passed through transformer layers. Mean pooling over token embeddings produces a **768-dimensional dense vector**, which is $L_2$-normalized for exact cosine similarity calculation.
 
 ### 3. FAISS Vector Retrieval
-The normalized vector is queried against a FAISS `IndexFlatIP` vector index containing **10,000 indexed clinical cases**. The retriever extracts the **Top-5 most similar historical cohorts**, complete with retrieved ground-truth diagnoses and similarity scores (e.g., 88.7%).
+The normalized vector is queried against a FAISS `IndexFlatIP` vector index containing **10,000 indexed clinical cases** derived from DDXPlus. The retriever extracts the **Top-5 most similar historical cases**, complete with ground-truth diagnoses and similarity scores (e.g., 88.7%).
 
 ### 4. Knowledge Graph Evidence Verification
 A compiled NetworkX directed graph (`medical_graph.pkl`) containing **49 disease nodes**, **222 symptom/evidence nodes**, and **888 directed edges** evaluates the candidate conditions. For each condition, the graph categorizes findings into:
@@ -89,7 +89,7 @@ A compiled NetworkX directed graph (`medical_graph.pkl`) containing **49 disease
 * **Contradictory** (`!`): Findings that conflict with typical presentation.
 
 ### 5. Groq LLM Reasoning Synthesis
-The grounded prompt—containing patient metrics, FAISS cohort statistics, and Knowledge Graph evidence matrices—is sent to Groq (`llama3-70b-8192`) at a low temperature ($0.1$). The LLM formats the response into a structured JSON differential assessment including candidate rankings, severity, ICD-10 codes, clinical rationale, and alternative diagnoses.
+The Groq LLM API acts as the reasoning synthesis layer. The model is configurable via the `GROQ_MODEL` environment variable (default: `llama3-70b-8192`). The grounded prompt—containing patient metrics, FAISS cohort statistics, and Knowledge Graph evidence matrices—is evaluated at a low temperature ($0.1$) to produce a structured JSON differential assessment.
 
 ---
 
@@ -97,10 +97,10 @@ The grounded prompt—containing patient metrics, FAISS cohort statistics, and K
 
 | Metric | Value | Source / Description |
 | :--- | :--- | :--- |
-| **Embedding Model** | `Bio_ClinicalBERT` | 768-D dense vectors via mean-pooling |
-| **FAISS Cohort Index** | 10,000 cases | L2-normalized Inner Product (`IndexFlatIP`) |
-| **Top-$k$ Retrieval** | 5 cases | Nearest-neighbor historical cohort matches |
-| **Knowledge Graph Nodes** | 271 nodes | 49 Disease nodes + 222 Symptom nodes |
+| **Embedding Model** | `Bio_ClinicalBERT` | 768-D dense vectors via mean-pooling (`Emilyalsentzer/Bio_ClinicalBERT`) |
+| **FAISS Vector Index** | 10,000 cases | L2-normalized Inner Product (`IndexFlatIP`) derived from DDXPlus |
+| **Top-$k$ Retrieval** | 5 cases | Nearest-neighbor historical case matches |
+| **Knowledge Graph Nodes** | 271 nodes | 49 Disease nodes + 222 Symptom/Evidence nodes |
 | **Knowledge Graph Edges** | 888 edges | Directed `has_symptom` and `has_antecedent` edges |
 | **Metadata Source** | DDXPlus Dataset | Cleaned clinical questions & disease definitions |
 
@@ -115,14 +115,14 @@ The grounded prompt—containing patient metrics, FAISS cohort statistics, and K
 ### 📈 Ranked Differential & Explainability Dashboard
 * **Candidate Conditions**: Expandable cards displaying rank (`01`, `02`), normalized ICD-10 codes (e.g., `J47`), severity scores, and matched vs. unreported evidence.
 * **Knowledge Graph Evidence Matrix**: Compact evidence matrix comparing findings across top conditions with status badges.
-* **Similar Historical Cases**: Interactive table featuring percentage match bars and modal views of full cohort symptom profiles.
+* **Similar Historical Cases**: Interactive table featuring percentage match bars and modal views of full case symptom profiles.
 * **Clinical Rationale**: AI-grounded reasoning paragraph with badged alternative conditions.
 * **Methodology Pipeline**: Visual 6-step flowchart explaining system processing.
 
 ### 📄 Client-Side PDF Clinical Assessment Report
-* Generates professional, multi-page clinical reports via `jsPDF` / `html2canvas`.
-* Includes patient profile, confidence metrics, differential diagnoses table, Knowledge Graph evidence, and historical cohort comparisons.
-* Runs 100% client-side without calling backend endpoints.
+* Directly generates professional multi-page PDF reports client-side using `jsPDF` and `jsPDF-AutoTable`.
+* Includes Patient Presentation, Diagnostic Assessment Summary, Differential Diagnoses, Knowledge Graph Evidence, Top 5 FAISS Similar Cases, Clinical Rationale, Alternative Conditions, Methodology Pipeline, and Safety Notice.
+* Runs 100% client-side without calling backend endpoints or opening browser print dialogs.
 
 ### 📜 Persistent Assessment History
 * Saved automatically in browser `localStorage` (`medassist_assessment_history`).
@@ -135,21 +135,22 @@ The grounded prompt—containing patient metrics, FAISS cohort statistics, and K
 
 ## ⚡ Efficient API Usage
 
-To ensure optimal API consumption on free-tier LLM services, MedAssist AI minimizes external network calls:
+The frontend is optimized to minimize backend and Groq LLM API requests:
 
-* **Single Request Model**: `/api/analyze` is called **only** when the user explicitly clicks **"Analyze Clinical Case"**.
-* **Cached Results**: Results are stored in React application state and browser `localStorage`.
-* **Zero-Request Actions**: Viewing historical assessments, filtering, sorting, searching, opening dialogs, expanding evidence accordions, and downloading PDF reports trigger **0 API calls**.
+* **Single Request Model**: `/api/analyze` is called **only** when the user explicitly submits a new clinical assessment by clicking **"Analyze Clinical Case"**.
+* **Backend Execution**: The Groq LLM call occurs securely inside the backend analysis pipeline. Groq is **never** called directly from the browser.
+* **Local Persistence**: Completed assessments are saved to browser `localStorage`.
+* **Zero-Request Actions**: Viewing results, opening dialogs, expanding evidence accordions, viewing saved history items, searching, filtering, sorting, and downloading PDF reports trigger **0 additional API calls**.
 
-| User Action | New Groq API Call |
-| :--- | :---: |
-| **Click "Analyze Clinical Case"** | **Yes (1 request)** |
-| **View Results Dashboard** | **No** |
-| **Navigate Tabs (Dashboard / Methodology / About)** | **No** |
-| **Open Saved Assessment from History** | **No** |
-| **Search / Filter / Sort History** | **No** |
-| **Download PDF Clinical Report** | **No** |
-| **Open Reasoner / Case Modals** | **No** |
+| User Action | New `/api/analyze` Call | New Groq API Call |
+| :--- | :---: | :---: |
+| **Click "Analyze Clinical Case"** | **Yes (1 request)** | **Yes (1 request by backend)** |
+| **View Results Dashboard** | **No** | **No** |
+| **Navigate Tabs (Dashboard / Methodology / About)** | **No** | **No** |
+| **Open Saved Assessment from History** | **No** | **No** |
+| **Search / Filter / Sort History** | **No** | **No** |
+| **Download PDF Clinical Report** | **No** | **No** |
+| **Open Dialogs / Accordions** | **No** | **No** |
 
 ---
 
@@ -215,6 +216,7 @@ AI-CDSS/
 │   ├── package.json
 │   └── vite.config.ts
 ├── docs/                        # Phase documentation & architecture guides
+├── .env.example                 # Environment variables template
 ├── README.md                    # Project documentation
 └── .gitignore
 ```
@@ -249,7 +251,7 @@ python -m venv .venv
 pip install -r backend/requirements.txt
 ```
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root based on `.env.example`:
 
 ```env
 GROK_API_KEY=your_groq_api_key_here
@@ -262,7 +264,7 @@ Start the FastAPI backend server:
 uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-The API will be available at `http://localhost:8000` (Swagger docs at `http://localhost:8000/docs`).
+The API will be available at `http://localhost:8000` (Health check: `http://localhost:8000/health`, Swagger docs at `http://localhost:8000/docs`).
 
 ---
 
@@ -283,15 +285,15 @@ The application will be running at `http://localhost:5173`.
 
 ---
 
-## 🛠️ Project Evolution & Development Phases
+## 🛠️ Project Development Phases
 
 * **Phase 1: Clinical Data Preprocessing**: Extracted and normalized symptom questions, disease definitions, and antecedent history from the DDXPlus clinical dataset.
-* **Phase 2: RAG & FAISS Vector Store**: Built BioClinicalBERT mean-pooling encoder and indexed 10,000 cases into FAISS `IndexFlatIP` for sub-millisecond similarity retrieval.
+* **Phase 2: RAG + FAISS Vector Retrieval**: Built BioClinicalBERT mean-pooling encoder and indexed 10,000 cases into FAISS `IndexFlatIP` for vector similarity search.
 * **Phase 3: Medical Knowledge Graph**: Constructed NetworkX directed graph (271 nodes, 888 edges) mapping disease-symptom relationships and evidence verification.
 * **Phase 4: Groq LLM Reasoning**: Integrated Groq API (`llama3-70b-8192`) with grounded prompt templates to output structured JSON differential assessments.
-* **Phase 5.1: PDF Clinical Report**: Developed client-side multi-page report generator (`jsPDF` / `html2canvas`) containing complete assessment details.
-* **Phase 5.2: Clinical Results UI Redesign**: Redesigned Results page into a modern healthcare SaaS dashboard with compact cards, evidence matrices, and confidence dials.
-* **Phase 5.3: Persistent Assessment History**: Built localStorage-backed Assessment History page with search, confidence filtering, date sorting, case reopening, and deletion controls.
+* **Phase 5.1: Clinical Assessment PDF Reports**: Developed client-side multi-page report generator (`jsPDF` / `html2canvas`) containing complete assessment details.
+* **Phase 5.2: Clinical Assessment Results UI Redesign**: Redesigned Results page into a modern healthcare SaaS dashboard with compact cards, evidence matrices, and confidence dials.
+* **Phase 5.3: Assessment History & Saved Cases**: Built localStorage-backed Assessment History page with search, confidence filtering, date sorting, case reopening, and deletion controls.
 
 ---
 
@@ -300,7 +302,7 @@ The application will be running at `http://localhost:5173`.
 > **IMPORTANT DISCLAIMER**  
 > MedAssist AI is an AI-assisted clinical decision support research and educational prototype. It is **not** a certified medical device and is **not** intended to provide formal medical diagnosis, replace clinical judgment, guide emergency treatment decisions, or substitute for consultation with qualified healthcare professionals.
 
-* **Data Scope**: Diagnostic suggestions are limited to the clinical knowledge base and synthetic cohort distributions represented in the DDXPlus dataset.
+* **Data Scope**: Diagnostic suggestions are limited to the clinical knowledge base and cohort distributions represented in the DDXPlus dataset.
 * **LLM Output Verification**: All language model outputs are grounded in retrieved context but should be independently reviewed by clinicians.
 * **Demonstration Safety**: For testing and demonstration, use synthetic or non-sensitive patient metrics.
 
