@@ -14,9 +14,8 @@ from backend.rag.embeddings import BioClinicalBERTEncoder
 from backend.rag.vector_store import ClinicalVectorStore
 
 def main():
-    # Set PyTorch threads to CPU count for fast encoding
-    num_threads = os.cpu_count() or 8
-    torch.set_num_threads(num_threads)
+    # Set PyTorch threads to 8 (optimal physical core count for L3 cache)
+    torch.set_num_threads(8)
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
     
@@ -78,8 +77,8 @@ def main():
     print("Generating normalized semantic embeddings for clinical narratives...")
     start_time = time.time()
     
-    # Use optimal CPU batch size of 128
-    sorted_embeddings = encoder.encode(sorted_narratives, batch_size=128, normalize=True)
+    # Use optimal CPU batch size of 64
+    sorted_embeddings = encoder.encode(sorted_narratives, batch_size=64, normalize=True)
     
     # Reconstruct original order of embeddings
     embeddings = np.zeros((len(narratives), sorted_embeddings.shape[1]), dtype=np.float32)

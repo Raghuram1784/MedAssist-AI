@@ -72,3 +72,6 @@ def normalize_symptom_list(symptoms: List[str]) -> List[str]:
         if norm_s and norm_s not in normalized:
             normalized.append(norm_s)
     return normalized
+
+# Alias for API consistency
+normalize_symptoms = normalize_symptom_list

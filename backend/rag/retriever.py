@@ -42,3 +42,6 @@ class ClinicalCaseRetriever:
         results = self.vector_store.search(query_embedding, top_k=top_k)
         
         return results
+
+# Class alias for API consistency
+ClinicalRetriever = ClinicalCaseRetriever
