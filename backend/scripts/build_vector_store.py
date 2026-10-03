@@ -78,8 +78,8 @@ def main():
     print("Generating normalized semantic embeddings for clinical narratives...")
     start_time = time.time()
     
-    # Use optimal CPU batch size of 64
-    sorted_embeddings = encoder.encode(sorted_narratives, batch_size=64, normalize=True)
+    # Use optimal CPU batch size of 128
+    sorted_embeddings = encoder.encode(sorted_narratives, batch_size=128, normalize=True)
     
     # Reconstruct original order of embeddings
     embeddings = np.zeros((len(narratives), sorted_embeddings.shape[1]), dtype=np.float32)
