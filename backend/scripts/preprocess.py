@@ -2,8 +2,10 @@ import os
 import argparse
 import time
 import json
+import pandas as pd
+import numpy as np
 from tqdm import tqdm
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 # Ensure we can import from backend
 import sys
@@ -13,6 +15,7 @@ from backend.app.data.parser import (
     load_conditions,
     load_evidences,
     stream_cases,
+    PatientCase,
 )
 from backend.app.data.translator import ClinicalTranslator
 
