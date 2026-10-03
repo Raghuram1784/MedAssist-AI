@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import time
+import shutil
 from tqdm import tqdm
 from typing import List, Dict, Any
 import numpy as np
@@ -14,8 +15,11 @@ from backend.rag.embeddings import BioClinicalBERTEncoder
 from backend.rag.vector_store import ClinicalVectorStore
 
 def main():
-    # Set PyTorch threads to 8 (optimal physical core count for L3 cache)
-    torch.set_num_threads(8)
+    # Environment variable configuration for safe CPU memory/thread execution
+    batch_size = int(os.environ.get("FAISS_BATCH_SIZE", 16))
+    torch_threads = int(os.environ.get("FAISS_TORCH_THREADS", 4))
+    torch.set_num_threads(torch_threads)
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
     
@@ -29,7 +33,8 @@ def main():
         # If running from inside backend, project_root might already be backend
         output_dir = os.path.join(project_root, "rag", "faiss_index")
         
-    os.makedirs(output_dir, exist_ok=True)
+    temp_output_dir = output_dir + "_temp"
+    os.makedirs(temp_output_dir, exist_ok=True)
     
     print("--- RAG FAISS Index Compiler ---")
     print(f"Loading data from: {train_preprocessed_path}")
@@ -39,7 +44,7 @@ def main():
         print("Please run backend/scripts/preprocess.py first.")
         sys.exit(1)
         
-    # 1. Read clinical narratives and metadata (reads all preprocessed stratified records)
+    # 1. Read clinical narratives and metadata
     limit = int(os.environ.get("FAISS_INDEX_SIZE", 0))
     cases_metadata = []
     narratives = []
@@ -62,7 +67,9 @@ def main():
             cases_metadata.append(meta)
             narratives.append(record.get("narrative"))
             
-    print(f"Loaded {len(narratives):,} cases for FAISS indexing.")
+    print(f"Batch size: {batch_size}")
+    print(f"PyTorch threads: {torch_threads}")
+    print(f"Number of cases: {len(narratives):,}")
     
     # 2. Instantiate BioClinicalBERT Encoder
     print("Initializing BioClinicalBERTEncoder...")
@@ -77,8 +84,8 @@ def main():
     print("Generating normalized semantic embeddings for clinical narratives...")
     start_time = time.time()
     
-    # Use optimal CPU batch size of 64
-    sorted_embeddings = encoder.encode(sorted_narratives, batch_size=64, normalize=True)
+    # Encode with safe configurable batch size
+    sorted_embeddings = encoder.encode(sorted_narratives, batch_size=batch_size, normalize=True)
     
     # Reconstruct original order of embeddings
     embeddings = np.zeros((len(narratives), sorted_embeddings.shape[1]), dtype=np.float32)
@@ -89,15 +96,36 @@ def main():
     print(f"Embeddings generated in {generation_time:.2f} seconds ({len(narratives)/generation_time:.1f} cases/sec).")
     print(f"Embedding matrix shape: {embeddings.shape}")
     
-    # 4. Build and save the FAISS Inner Product index
-    print("Populating FAISS vector index...")
-    vector_store = ClinicalVectorStore(dimension=embeddings.shape[1])
-    vector_store.add_cases(embeddings, cases_metadata)
+    # 4. Build and save the FAISS Inner Product index in temporary directory
+    print("Populating FAISS vector index in temporary build directory...")
+    vector_store_temp = ClinicalVectorStore(dimension=embeddings.shape[1])
+    vector_store_temp.add_cases(embeddings, cases_metadata)
     
-    print(f"Saving FAISS index & metadata registry to: {output_dir}")
-    vector_store.save(output_dir)
+    print(f"Saving temporary FAISS index to: {temp_output_dir}")
+    vector_store_temp.save(temp_output_dir)
     
-    print("\n--- FAISS Vector Indexing Phase 2 Complete ---")
+    # 5. Atomic Verification & Replacement
+    print("\n--- Verifying Temporary FAISS Build ---")
+    verification_store = ClinicalVectorStore()
+    verification_store.load(temp_output_dir)
+    
+    print(f"Temporary FAISS ntotal: {verification_store.index.ntotal}")
+    print(f"Temporary Metadata count: {len(verification_store.metadata)}")
+    print(f"Embedding dimension: {verification_store.index.d}")
+    print(f"Index type: {type(verification_store.index).__name__}")
+    
+    if (verification_store.index.ntotal == len(narratives) and 
+        len(verification_store.metadata) == len(narratives) and 
+        verification_store.index.d == 768):
+        print("\nVerification SUCCESS! Replacing active FAISS index directory with newly compiled index...")
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
+        shutil.move(temp_output_dir, output_dir)
+        print(f"Active FAISS index successfully updated at: {output_dir}")
+        print("--- FAISS Vector Indexing Complete ---")
+    else:
+        print("\nError: Verification FAILED! The newly compiled index does not match expected counts.")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
