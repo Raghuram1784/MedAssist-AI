@@ -14,8 +14,9 @@ from backend.rag.embeddings import BioClinicalBERTEncoder
 from backend.rag.vector_store import ClinicalVectorStore
 
 def main():
-    # Limit PyTorch threads to prevent CPU thrashing
-    torch.set_num_threads(4)
+    # Set PyTorch threads to CPU count for fast encoding
+    num_threads = os.cpu_count() or 8
+    torch.set_num_threads(num_threads)
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
     
@@ -39,14 +40,14 @@ def main():
         print("Please run backend/scripts/preprocess.py first.")
         sys.exit(1)
         
-    # 1. Read clinical narratives and metadata (up to 10,000 records)
-    limit = 10000
+    # 1. Read clinical narratives and metadata (reads all preprocessed stratified records)
+    limit = int(os.environ.get("FAISS_INDEX_SIZE", 0))
     cases_metadata = []
     narratives = []
     
     with open(train_preprocessed_path, 'r', encoding='utf-8') as f:
         for idx, line in enumerate(f):
-            if idx >= limit:
+            if limit > 0 and idx >= limit:
                 break
             record = json.loads(line)
             
@@ -62,7 +63,7 @@ def main():
             cases_metadata.append(meta)
             narratives.append(record.get("narrative"))
             
-    print(f"Loaded {len(narratives)} cases for indexing.")
+    print(f"Loaded {len(narratives):,} cases for FAISS indexing.")
     
     # 2. Instantiate BioClinicalBERT Encoder
     print("Initializing BioClinicalBERTEncoder...")
@@ -77,8 +78,8 @@ def main():
     print("Generating normalized semantic embeddings for clinical narratives...")
     start_time = time.time()
     
-    # Use smaller batch size of 16 for CPU efficiency
-    sorted_embeddings = encoder.encode(sorted_narratives, batch_size=16, normalize=True)
+    # Use optimal CPU batch size of 64
+    sorted_embeddings = encoder.encode(sorted_narratives, batch_size=64, normalize=True)
     
     # Reconstruct original order of embeddings
     embeddings = np.zeros((len(narratives), sorted_embeddings.shape[1]), dtype=np.float32)

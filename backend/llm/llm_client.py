@@ -11,7 +11,7 @@ class LLMClient:
         Initialize the LLM client using environment configuration keys.
         """
         self.api_key = os.environ.get("GROK_API_KEY")
-        self.model_name = os.environ.get("GROQ_MODEL", "llama3-70b-8192")
+        self.model_name = os.environ.get("GROQ_MODEL", "qwen/qwen3.8-27b")
         
         if not self.api_key:
             raise ValueError(

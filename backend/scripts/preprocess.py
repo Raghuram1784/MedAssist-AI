@@ -19,77 +19,75 @@ from backend.app.data.translator import ClinicalTranslator
 def preprocess_file(csv_path: str, 
                     output_path: str, 
                     translator: ClinicalTranslator, 
-                    sample_size: Optional[int] = None) -> int:
+                    sample_size: Optional[int] = None,
+                    seed: int = 42) -> int:
     """
     Preprocess a single raw CSV file and write to JSONL format.
-    
-    Args:
-        csv_path: Path to the raw input CSV file.
-        output_path: Path to write the output JSONL file.
-        translator: Instantiated ClinicalTranslator.
-        sample_size: Maximum number of rows to process. None for full dataset.
-        
-    Returns:
-        Number of processed records.
+    If sample_size is specified for train.csv, use deterministic stratified pathology sampling.
     """
     print(f"\nPreprocessing: {os.path.basename(csv_path)}")
     print(f"Input: {csv_path}")
     print(f"Output: {output_path}")
-    if sample_size:
-        print(f"Sampling mode enabled. Sample size: {sample_size} cases.")
-    else:
-        print("Processing full dataset.")
 
-    # Create output directories if they don't exist
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
     start_time = time.time()
-    
-    # We can estimate total rows to make tqdm look nice
-    # (Approximate counts: test ~ 134k, validate ~ 132k, train ~ 1.02M)
-    total_est = sample_size
-    if not total_est:
-        if "test" in csv_path:
-            total_est = 134529
-        elif "validate" in csv_path:
-            total_est = 132000 # approximation
-        else:
-            total_est = 1000000 # approximation
+
+    # Determine row filter for stratified sampling if applicable
+    sampled_indices_set = None
+    if sample_size and "train.csv" in csv_path:
+        print(f"Stratified sampling mode enabled for {sample_size} target records (seed={seed}).")
+        df_path = pd.read_csv(csv_path, usecols=['PATHOLOGY'])
+        np.random.seed(seed)
+        sampled_indices = []
+        target_per_class = max(1100, sample_size // 49)
+        for pathology, count in df_path['PATHOLOGY'].value_counts().items():
+            idx_list = df_path[df_path['PATHOLOGY'] == pathology].index.values
+            if count <= target_per_class:
+                sampled_indices.extend(idx_list)
+            else:
+                sampled_indices.extend(np.random.choice(idx_list, size=target_per_class, replace=False))
+        sampled_indices_set = set(sampled_indices)
+        print(f"Stratified sample selected {len(sampled_indices_set):,} indices across all {df_path['PATHOLOGY'].nunique()} pathologies.")
 
     processed_count = 0
     with open(output_path, 'w', encoding='utf-8') as outfile:
-        # Use our streaming generator to keep memory low
-        cases_gen = stream_cases(csv_path, limit=sample_size)
-        
-        with tqdm(total=total_est, desc=f"Parsing {os.path.basename(csv_path)}") as pbar:
-            for case in cases_gen:
-                # Translate code case to rich clinical case
+        # Process in pandas chunks for speed
+        chunksize = 5000
+        for chunk in pd.read_csv(csv_path, chunksize=chunksize):
+            for idx, row in chunk.iterrows():
+                if sampled_indices_set is not None and idx not in sampled_indices_set:
+                    continue
+                if sample_size and "train.csv" not in csv_path and processed_count >= sample_size:
+                    break
+
+                case = PatientCase(
+                    age=int(row['AGE']),
+                    sex=str(row['SEX']),
+                    pathology=str(row['PATHOLOGY']),
+                    evidences=row['EVIDENCES'],
+                    differential_diagnosis=row['DIFFERENTIAL_DIAGNOSIS'],
+                    initial_evidence=str(row['INITIAL_EVIDENCE'])
+                )
                 translated_case = translator.translate_case(case)
-                
-                # Write to JSONL
                 outfile.write(json.dumps(translated_case, ensure_ascii=False) + "\n")
                 processed_count += 1
-                pbar.update(1)
 
     elapsed = time.time() - start_time
-    print(f"Completed! Processed {processed_count} records in {elapsed:.2f} seconds ({processed_count/elapsed:.1f} rec/sec).")
+    print(f"Completed! Processed {processed_count:,} records in {elapsed:.2f} seconds ({processed_count/elapsed:.1f} rec/sec).")
     print(f"Output File Size: {os.path.getsize(output_path) / (1024*1024):.2f} MB")
-    
     return processed_count
 
 def main():
     parser = argparse.ArgumentParser(description="Preprocess DDXPlus clinical cases into structured clinical summaries.")
-    parser.add_argument("--sample-size", type=int, default=10000, 
-                        help="Number of cases to sample from training set (default: 10000). Set to 0 to process the full file.")
+    parser.add_argument("--sample-size", type=int, default=int(os.environ.get("FAISS_INDEX_SIZE", 50000)), 
+                        help="Target stratified sample size for training set (default: 50000). Set to 0 to process full file.")
     parser.add_argument("--full", action="store_true", 
                         help="Process the full dataset for train, validation, and test (ignores --sample-size).")
     args = parser.parse_args()
 
-    # Determine paths relative to project root
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
     
-    # Raw datasets paths
     datasets_dir = os.path.join(os.path.dirname(project_root), "datasets", "ddxplus")
     conditions_json = os.path.join(datasets_dir, "release_conditions.json")
     evidences_json = os.path.join(datasets_dir, "release_evidences.json")
@@ -97,7 +95,6 @@ def main():
     validate_csv = os.path.join(datasets_dir, "validate.csv")
     test_csv = os.path.join(datasets_dir, "test.csv")
 
-    # Output directory
     output_dir = os.path.join(datasets_dir, "preprocessed")
     train_out = os.path.join(output_dir, "train_preprocessed.jsonl")
     validate_out = os.path.join(output_dir, "validate_preprocessed.jsonl")
@@ -108,24 +105,20 @@ def main():
     evidences_meta = load_evidences(evidences_json)
     print("Metadata loaded successfully.")
     
-    # Instantiate translator
     translator = ClinicalTranslator(
         evidences_metadata=evidences_meta,
         conditions_metadata=conditions_meta
     )
 
-    # Determine sampling limits
     if args.full:
         train_limit = None
         val_limit = None
         test_limit = None
     else:
-        train_limit = args.sample_size
-        # Sample smaller portions of val/test sets to keep dev fast
+        train_limit = args.sample_size if args.sample_size > 0 else None
         val_limit = min(args.sample_size // 5, 2000) if args.sample_size > 0 else None
         test_limit = min(args.sample_size // 5, 2000) if args.sample_size > 0 else None
 
-    # Preprocess each split
     preprocess_file(test_csv, test_out, translator, sample_size=test_limit)
     preprocess_file(validate_csv, validate_out, translator, sample_size=val_limit)
     preprocess_file(train_csv, train_out, translator, sample_size=train_limit)

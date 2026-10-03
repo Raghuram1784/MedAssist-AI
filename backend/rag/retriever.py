@@ -21,7 +21,7 @@ class ClinicalCaseRetriever:
         self.vector_store = ClinicalVectorStore()
         self.vector_store.load(self.index_dir)
 
-    def retrieve_similar_cases(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+    def retrieve_similar_cases(self, query: str, top_k: int = 25) -> List[Dict[str, Any]]:
         """
         Embed the input clinical text query and return the top_k most similar historical cases.
         

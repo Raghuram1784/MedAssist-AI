@@ -69,7 +69,7 @@ class BioClinicalBERTEncoder:
             ).to(self.device)
             
             # Run model inference
-            with torch.no_grad():
+            with torch.inference_mode():
                 model_output = self.model(**encoded_input)
                 
             # Perform mean pooling
