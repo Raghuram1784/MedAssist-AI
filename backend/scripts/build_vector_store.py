@@ -66,9 +66,23 @@ def main():
     if not os.path.exists(os.path.join(project_root, "backend")):
         output_dir = os.path.join(project_root, "rag", "faiss_index")
         
+    faiss_mode = os.environ.get("FAISS_MODE", "").lower()
+    is_test_env = os.environ.get("FAISS_IS_TEST", "false").lower() in ("true", "1", "yes")
+    custom_output_dir = os.environ.get("FAISS_OUTPUT_DIR", "").strip()
+
+    is_test_mode = (faiss_mode == "test") or is_test_env or bool(custom_output_dir)
+
+    if custom_output_dir:
+        output_dir = custom_output_dir
+    elif is_test_mode:
+        output_dir = os.path.join(os.path.dirname(output_dir), "faiss_index_test")
+
     temp_output_dir = output_dir + "_temp"
     
     print("--- Resumable BioClinicalBERT FAISS Index Compiler ---")
+    if is_test_mode:
+        print(f"[TEST MODE ACTIVE] Output target is isolated to: {output_dir}")
+
     
     # Handle RESET_BUILD flag
     if reset_build:
@@ -283,20 +297,46 @@ def main():
     del memmap_arr
     gc.collect()
 
+    allow_partial_overwrite = os.environ.get("FAISS_ALLOW_PARTIAL_OVERWRITE", "false").lower() in ("true", "1", "yes")
+
     if v_total == total_cases and v_meta == total_cases and v_dim == 768 and v_type == "IndexFlatIP":
-        print("\nVerification SUCCESS! Copying newly compiled FAISS index to active directory...")
-        os.makedirs(output_dir, exist_ok=True)
-        
-        src_index = os.path.join(temp_output_dir, "clinical_cases.index")
-        src_meta = os.path.join(temp_output_dir, "metadata.json")
-        dst_index = os.path.join(output_dir, "clinical_cases.index")
-        dst_meta = os.path.join(output_dir, "metadata.json")
-        
-        shutil.copy2(src_index, dst_index)
-        shutil.copy2(src_meta, dst_meta)
-        
-        print(f"Active FAISS index successfully updated at: {output_dir}")
-        print("--- FAISS Vector Indexing Complete ---")
+        if is_test_mode:
+            print("\n--------------------------------------------------")
+            print(f"[Isolated Test Output] Build completed successfully ({total_cases:,} cases).")
+            print(f"Test FAISS index is saved in isolated directory: {output_dir}")
+            print("Active production index was NOT modified.")
+            print("--------------------------------------------------")
+            os.makedirs(output_dir, exist_ok=True)
+            
+            src_index = os.path.join(temp_output_dir, "clinical_cases.index")
+            src_meta = os.path.join(temp_output_dir, "metadata.json")
+            dst_index = os.path.join(output_dir, "clinical_cases.index")
+            dst_meta = os.path.join(output_dir, "metadata.json")
+            
+            shutil.copy2(src_index, dst_index)
+            shutil.copy2(src_meta, dst_meta)
+            print(f"Isolated test FAISS index successfully updated at: {output_dir}")
+        elif limit > 0 and not allow_partial_overwrite:
+            print("\n--------------------------------------------------")
+            print(f"[Test Mode Notice] Partial build completed successfully ({total_cases:,} cases).")
+            print(f"Test index is saved in temporary directory: {temp_output_dir}")
+            print(f"Active production index at {output_dir} was NOT overwritten.")
+            print("(To explicitly update active index with a partial build, set FAISS_ALLOW_PARTIAL_OVERWRITE=true)")
+            print("--------------------------------------------------")
+        else:
+            print("\nVerification SUCCESS! Copying newly compiled FAISS index to active directory...")
+            os.makedirs(output_dir, exist_ok=True)
+            
+            src_index = os.path.join(temp_output_dir, "clinical_cases.index")
+            src_meta = os.path.join(temp_output_dir, "metadata.json")
+            dst_index = os.path.join(output_dir, "clinical_cases.index")
+            dst_meta = os.path.join(output_dir, "metadata.json")
+            
+            shutil.copy2(src_index, dst_index)
+            shutil.copy2(src_meta, dst_meta)
+            
+            print(f"Active FAISS index successfully updated at: {output_dir}")
+            print("--- FAISS Vector Indexing Complete ---")
     else:
         print("\nError: Verification FAILED! The newly compiled index does not match expected criteria.")
         sys.exit(1)
