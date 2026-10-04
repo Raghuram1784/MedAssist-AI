@@ -145,19 +145,30 @@ def main():
             with open(checkpoint_path, 'r', encoding='utf-8') as f:
                 ckpt = json.load(f)
                 
-            # Verify checkpoint validity against current dataset & configuration
+            ckpt_batch_size = ckpt.get("batch_size")
             if (ckpt.get("dataset_sha256") == dataset_sha256 and
                 ckpt.get("total_cases") == total_cases and
                 ckpt.get("embedding_dimension") == embedding_dim):
                 
+                if ckpt_batch_size is not None and ckpt_batch_size != batch_size:
+                    print("\n--------------------------------------------------")
+                    print(f"[Error] Checkpoint batch size: {ckpt_batch_size}")
+                    print(f"Current batch size: {batch_size}")
+                    print("\nBatch size changed. Refusing to resume because this could cause incorrect embedding offsets.")
+                    print("\nTo resolve this issue, please either:")
+                    print(f"  1. Run with FAISS_BATCH_SIZE={ckpt_batch_size} to match the existing checkpoint, or")
+                    print("  2. Set FAISS_RESET_BUILD=true to intentionally start over with a fresh build.")
+                    print("--------------------------------------------------\n")
+                    sys.exit(1)
+                
                 completed_batches = ckpt.get("completed_batches", 0)
-                completed_cases = ckpt.get("completed_cases", 0)
                 next_batch_start = ckpt.get("next_batch_start", 0)
+                completed_cases = ckpt.get("completed_cases", next_batch_start)
                 start_elapsed_offset = ckpt.get("total_elapsed_seconds", 0.0)
                 
                 print("\n--------------------------------------------------")
                 print("Existing temporary build checkpoint detected.")
-                print(f"Resuming from batch {completed_batches}/{num_batches}:")
+                print(f"Resuming from next_batch_start={next_batch_start:,} (Batch {completed_batches + 1}/{num_batches}):")
                 print(f"  - Completed cases: {completed_cases:,} / {total_cases:,} ({completed_cases/total_cases*100:.1f}%)")
                 print(f"  - Remaining cases: {total_cases - completed_cases:,}")
                 print(f"  - Prior elapsed time: {format_time(start_elapsed_offset)}")
@@ -199,8 +210,11 @@ def main():
         build_start_time = time.time()
         
         try:
-            for b_idx in range(completed_batches, num_batches):
-                b_start = b_idx * batch_size
+            current_pos = next_batch_start
+            session_cases_processed = 0
+            
+            while current_pos < total_cases:
+                b_start = current_pos
                 b_end = min(b_start + batch_size, total_cases)
                 batch_texts = sorted_narratives[b_start:b_end]
                 
@@ -211,16 +225,17 @@ def main():
                 memmap_arr[b_start:b_end] = batch_vectors
                 memmap_arr.flush()
                 
-                # Update counters
-                completed_batches = b_idx + 1
-                completed_cases = b_end
+                # Update counters based on actual offset
+                current_pos = b_end
                 next_batch_start = b_end
+                completed_cases = b_end
+                completed_batches += 1
+                session_cases_processed += (b_end - b_start)
                 
                 current_session_elapsed = time.time() - build_start_time
                 total_elapsed = start_elapsed_offset + current_session_elapsed
                 
-                cases_done_in_session = completed_cases - (next_batch_start - (b_end - b_start))
-                session_speed = (completed_cases - (b_idx * batch_size)) / max(current_session_elapsed, 0.001)
+                session_speed = session_cases_processed / max(current_session_elapsed, 0.001)
                 remaining_cases = total_cases - completed_cases
                 est_remaining_sec = remaining_cases / session_speed if session_speed > 0 else 0
                 
