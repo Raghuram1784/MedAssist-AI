@@ -70,7 +70,7 @@ export default function ModelEvaluation({ setActiveTab }: ModelEvaluationProps) 
             Model Evaluation & Benchmark Performance
           </h2>
           <p className="text-xs text-[#64748B] font-medium mt-0.5">
-            Offline evaluation of MedAssist AI on held-out DDXPlus cases
+            Offline evaluation of MedAssist AI on held-out DDXPlus test cases (0 Groq API calls)
           </p>
         </div>
 
@@ -91,19 +91,19 @@ export default function ModelEvaluation({ setActiveTab }: ModelEvaluationProps) 
         
         <div className="p-4 bg-amber-50/70 border border-amber-200/80 rounded-xl text-amber-900 text-xs font-medium space-y-1">
           <div className="flex items-center gap-1.5 text-amber-900 font-extrabold text-[11px] uppercase tracking-wider">
-            <ShieldAlert size={14} className="text-amber-600" /> Benchmark Notice
+            <ShieldAlert size={14} className="text-amber-600" /> Benchmark Research Disclaimer
           </div>
           <p className="text-[11px] leading-relaxed text-amber-800">
-            {metrics.disclaimer || "These metrics are benchmark results on synthetic DDXPlus cases and do not represent real-world clinical performance."}
+            {metrics.disclaimer || "Benchmark results are measured on the synthetic DDXPlus held-out test set. They do not represent real-world clinical accuracy, patient outcomes, or clinical safety."}
           </p>
         </div>
 
         <div className="p-4 bg-indigo-50/60 border border-indigo-200/70 rounded-xl text-indigo-950 text-xs font-medium space-y-1">
           <div className="flex items-center gap-1.5 text-indigo-900 font-extrabold text-[11px] uppercase tracking-wider">
-            <Info size={14} className="text-indigo-600" /> Evaluation Isolation Protocol
+            <Info size={14} className="text-indigo-600" /> Evaluation Isolation & Deterministic Protocol
           </div>
           <p className="text-[11px] leading-relaxed text-indigo-800">
-            Large-scale retrieval and candidate-ranking evaluation was performed offline (0 Groq API calls). Groq reasoning is evaluated separately through integration tests and live demonstration cases.
+            Evaluation is conducted on a balanced held-out DDXPlus test subset (up to 50 cases per pathology, deterministic random seed 42). Offline evaluation uses 0 Groq API calls.
           </p>
         </div>
 
@@ -118,7 +118,7 @@ export default function ModelEvaluation({ setActiveTab }: ModelEvaluationProps) 
               <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Eval Cases</span>
               <Database size={13} className="text-indigo-500" />
             </div>
-            <div className="text-xl font-black text-[#0F172A]">{metrics.sample_size?.toLocaleString() || "1,735"}</div>
+            <div className="text-xl font-black text-[#0F172A]">{(metrics.sample_size || 2436).toLocaleString()}</div>
             <span className="text-[9px] text-slate-500 font-semibold mt-0.5 block">Held-out test cases</span>
           </CardContent>
         </Card>
@@ -129,30 +129,30 @@ export default function ModelEvaluation({ setActiveTab }: ModelEvaluationProps) 
               <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Pathologies</span>
               <Layers size={13} className="text-cyan-500" />
             </div>
-            <div className="text-xl font-black text-[#0F172A]">{metrics.pathologies_evaluated || 48}</div>
-            <span className="text-[9px] text-slate-500 font-semibold mt-0.5 block">Balanced classes</span>
+            <div className="text-xl font-black text-[#0F172A]">{metrics.pathologies_evaluated || 49}</div>
+            <span className="text-[9px] text-slate-500 font-semibold mt-0.5 block">Evaluated classes</span>
           </CardContent>
         </Card>
 
         <Card className="shadow-xs border border-[#E2E8F0] bg-white rounded-xl">
           <CardContent className="p-4">
             <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Top-1 Accuracy</span>
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Top-1 Exact</span>
               <CheckCircle2 size={13} className="text-emerald-500" />
             </div>
-            <div className="text-xl font-black text-emerald-600">{metrics.top1_accuracy}%</div>
-            <span className="text-[9px] text-slate-500 font-semibold mt-0.5 block">GTPA@1 Benchmark</span>
+            <div className="text-xl font-black text-emerald-600">{metrics.top1_exact_accuracy}%</div>
+            <span className="text-[9px] text-slate-500 font-semibold mt-0.5 block">Exact Ground-Truth</span>
           </CardContent>
         </Card>
 
         <Card className="shadow-xs border border-[#E2E8F0] bg-white rounded-xl">
           <CardContent className="p-4">
             <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Top-5 Accuracy</span>
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Top-5 Exact</span>
               <BarChart3 size={13} className="text-indigo-500" />
             </div>
-            <div className="text-xl font-black text-indigo-600">{metrics.top5_accuracy}%</div>
-            <span className="text-[9px] text-slate-500 font-semibold mt-0.5 block">GTPA@5 Coverage</span>
+            <div className="text-xl font-black text-indigo-600">{metrics.top5_exact_accuracy}%</div>
+            <span className="text-[9px] text-slate-500 font-semibold mt-0.5 block">Candidate Coverage</span>
           </CardContent>
         </Card>
 
@@ -170,11 +170,11 @@ export default function ModelEvaluation({ setActiveTab }: ModelEvaluationProps) 
         <Card className="shadow-xs border border-[#E2E8F0] bg-white rounded-xl">
           <CardContent className="p-4">
             <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Recall@25</span>
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500">Macro F1</span>
               <Zap size={13} className="text-purple-500" />
             </div>
-            <div className="text-xl font-black text-purple-600">{metrics.retrieval_recall_at_25}%</div>
-            <span className="text-[9px] text-slate-500 font-semibold mt-0.5 block">FAISS Cohort Recall</span>
+            <div className="text-xl font-black text-purple-600">{metrics.macro_f1}%</div>
+            <span className="text-[9px] text-slate-500 font-semibold mt-0.5 block">All Pathologies</span>
           </CardContent>
         </Card>
 
@@ -187,7 +187,7 @@ export default function ModelEvaluation({ setActiveTab }: ModelEvaluationProps) 
             Benchmark Metrics
           </TabsTrigger>
           <TabsTrigger value="pathologies" className="text-xs font-bold px-4 py-1.5 rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
-            Pathology Breakdown ({metrics.pathologies_evaluated || 48})
+            Pathology Breakdown ({metrics.pathologies_evaluated || 49})
           </TabsTrigger>
           <TabsTrigger value="latency" className="text-xs font-bold px-4 py-1.5 rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
             Latency Breakdown
@@ -201,35 +201,35 @@ export default function ModelEvaluation({ setActiveTab }: ModelEvaluationProps) 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             
-            {/* Classification & Ranking Card */}
+            {/* Candidate Ranking Metrics Card */}
             <Card className="shadow-sm border border-[#E2E8F0] bg-white rounded-xl">
               <CardHeader className="pb-3">
                 <CardTitle className="text-xs font-extrabold text-[#0F172A] uppercase tracking-wider flex items-center gap-1.5">
-                  <CheckCircle2 size={14} className="text-emerald-500" /> Classification Accuracy
+                  <CheckCircle2 size={14} className="text-emerald-500" /> DDXPlus Benchmark — Exact Match Metrics
                 </CardTitle>
                 <CardDescription className="text-[11px] text-slate-500">
-                  Ground-truth pathology agreement across candidate ranks
+                  Ground-truth pathology hit rates across candidate ranks
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-xs">
                 <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200/60">
-                  <span className="font-semibold text-slate-700">Top-1 Accuracy (GTPA@1)</span>
-                  <span className="font-black text-emerald-600 text-sm">{metrics.top1_accuracy}%</span>
+                  <span className="font-semibold text-slate-700">Top-1 Exact Ground-Truth Hit</span>
+                  <span className="font-black text-emerald-600 text-sm">{metrics.top1_exact_accuracy}%</span>
                 </div>
                 <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200/60">
-                  <span className="font-semibold text-slate-700">Top-3 Accuracy (GTPA@3)</span>
-                  <span className="font-black text-indigo-600 text-sm">{metrics.top3_accuracy}%</span>
+                  <span className="font-semibold text-slate-700">Top-3 Exact Ground-Truth Hit</span>
+                  <span className="font-black text-indigo-600 text-sm">{metrics.top3_exact_accuracy}%</span>
                 </div>
                 <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200/60">
-                  <span className="font-semibold text-slate-700">Top-5 Accuracy (GTPA@5)</span>
-                  <span className="font-black text-indigo-600 text-sm">{metrics.top5_accuracy}%</span>
+                  <span className="font-semibold text-slate-700">Top-5 Exact Ground-Truth Hit</span>
+                  <span className="font-black text-indigo-600 text-sm">{metrics.top5_exact_accuracy}%</span>
                 </div>
                 <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200/60">
                   <span className="font-semibold text-slate-700">Mean Reciprocal Rank (MRR)</span>
                   <span className="font-black text-slate-800 text-sm">{metrics.mrr}</span>
                 </div>
                 <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200/60">
-                  <span className="font-semibold text-slate-700">Macro F1 Score</span>
+                  <span className="font-semibold text-slate-700">Macro F1 Score (49 Pathologies)</span>
                   <span className="font-black text-[#0F172A] text-sm">{metrics.macro_f1}%</span>
                 </div>
               </CardContent>
@@ -239,10 +239,10 @@ export default function ModelEvaluation({ setActiveTab }: ModelEvaluationProps) 
             <Card className="shadow-sm border border-[#E2E8F0] bg-white rounded-xl">
               <CardHeader className="pb-3">
                 <CardTitle className="text-xs font-extrabold text-[#0F172A] uppercase tracking-wider flex items-center gap-1.5">
-                  <Layers size={14} className="text-indigo-500" /> FAISS Retrieval Recall
+                  <Layers size={14} className="text-indigo-500" /> FAISS Retrieval & Candidate Recall
                 </CardTitle>
                 <CardDescription className="text-[11px] text-slate-500">
-                  Historical case cohort ground-truth coverage
+                  52,679 indexed training case retrieval ground-truth hit rates
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-xs">
@@ -259,7 +259,7 @@ export default function ModelEvaluation({ setActiveTab }: ModelEvaluationProps) 
                   <span className="font-black text-purple-600 text-sm">{metrics.retrieval_recall_at_25}%</span>
                 </div>
                 <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200/60">
-                  <span className="font-semibold text-slate-700">Candidate Pool Recall @ K=5</span>
+                  <span className="font-semibold text-slate-700">Candidate Recall @ K=5</span>
                   <span className="font-black text-indigo-600 text-sm">{metrics.candidate_recall_at_5}%</span>
                 </div>
               </CardContent>
@@ -269,10 +269,10 @@ export default function ModelEvaluation({ setActiveTab }: ModelEvaluationProps) 
             <Card className="shadow-sm border border-[#E2E8F0] bg-white rounded-xl">
               <CardHeader className="pb-3">
                 <CardTitle className="text-xs font-extrabold text-[#0F172A] uppercase tracking-wider flex items-center gap-1.5">
-                  <Zap size={14} className="text-amber-500" /> Differential Quality Metrics
+                  <Zap size={14} className="text-amber-500" /> DDXPlus Differential Metrics
                 </CardTitle>
                 <CardDescription className="text-[11px] text-slate-500">
-                  DDXPlus ground-truth differential set overlap
+                  Differential overlap calculated after thresholding ground-truth prob &gt; 0.01
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-xs">
@@ -369,48 +369,72 @@ export default function ModelEvaluation({ setActiveTab }: ModelEvaluationProps) 
           <Card className="shadow-sm border border-[#E2E8F0] bg-white rounded-xl">
             <CardHeader className="pb-3">
               <CardTitle className="text-xs font-extrabold text-[#0F172A] uppercase tracking-wider flex items-center gap-1.5">
-                <Cpu size={14} className="text-indigo-500" /> Pipeline Stage Execution Latencies (Offline CPU)
+                <Cpu size={14} className="text-indigo-500" /> Pipeline Stage Execution Latencies (Measured per case)
               </CardTitle>
               <CardDescription className="text-[11px] text-slate-500">
-                Pre-LLM processing latency measured in milliseconds per case
+                Independent pre-LLM timer measurements recorded in milliseconds
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
                 
                 <div className="p-3 bg-slate-50 border border-slate-200/70 rounded-lg">
                   <span className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">BERT Encoding</span>
                   <div className="mt-1 flex items-baseline justify-between">
                     <span className="text-slate-600 font-semibold">P50 (Median):</span>
-                    <strong className="font-black text-slate-900 text-sm">{metrics.latencies?.encoding_ms?.p50 || 0} ms</strong>
+                    <strong className="font-black text-slate-900 text-sm">{metrics.latencies?.encoding_ms?.p50 ?? 0} ms</strong>
                   </div>
                   <div className="flex items-baseline justify-between mt-0.5">
                     <span className="text-slate-500 text-[10px]">P95 (95th %):</span>
-                    <span className="font-bold text-slate-700 text-xs">{metrics.latencies?.encoding_ms?.p95 || 0} ms</span>
+                    <span className="font-bold text-slate-700 text-xs">{metrics.latencies?.encoding_ms?.p95 ?? 0} ms</span>
                   </div>
                 </div>
 
                 <div className="p-3 bg-slate-50 border border-slate-200/70 rounded-lg">
-                  <span className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">FAISS Search (Top-25)</span>
+                  <span className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">FAISS Search</span>
                   <div className="mt-1 flex items-baseline justify-between">
                     <span className="text-slate-600 font-semibold">P50 (Median):</span>
-                    <strong className="font-black text-slate-900 text-sm">{metrics.latencies?.faiss_search_ms?.p50 || 0} ms</strong>
+                    <strong className="font-black text-slate-900 text-sm">{metrics.latencies?.faiss_search_ms?.p50 ?? 0} ms</strong>
                   </div>
                   <div className="flex items-baseline justify-between mt-0.5">
                     <span className="text-slate-500 text-[10px]">P95 (95th %):</span>
-                    <span className="font-bold text-slate-700 text-xs">{metrics.latencies?.faiss_search_ms?.p95 || 0} ms</span>
+                    <span className="font-bold text-slate-700 text-xs">{metrics.latencies?.faiss_search_ms?.p95 ?? 0} ms</span>
                   </div>
                 </div>
 
                 <div className="p-3 bg-slate-50 border border-slate-200/70 rounded-lg">
-                  <span className="block text-[10px] font-extrabold text-indigo-700 uppercase tracking-wider">Total Pre-LLM Pipeline</span>
+                  <span className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Knowledge Graph</span>
+                  <div className="mt-1 flex items-baseline justify-between">
+                    <span className="text-slate-600 font-semibold">P50 (Median):</span>
+                    <strong className="font-black text-slate-900 text-sm">{metrics.latencies?.kg_discovery_ms?.p50 ?? 0} ms</strong>
+                  </div>
+                  <div className="flex items-baseline justify-between mt-0.5">
+                    <span className="text-slate-500 text-[10px]">P95 (95th %):</span>
+                    <span className="font-bold text-slate-700 text-xs">{metrics.latencies?.kg_discovery_ms?.p95 ?? 0} ms</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200/70 rounded-lg">
+                  <span className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Hybrid Scoring</span>
+                  <div className="mt-1 flex items-baseline justify-between">
+                    <span className="text-slate-600 font-semibold">P50 (Median):</span>
+                    <strong className="font-black text-slate-900 text-sm">{metrics.latencies?.hybrid_scoring_ms?.p50 ?? 0} ms</strong>
+                  </div>
+                  <div className="flex items-baseline justify-between mt-0.5">
+                    <span className="text-slate-500 text-[10px]">P95 (95th %):</span>
+                    <span className="font-bold text-slate-700 text-xs">{metrics.latencies?.hybrid_scoring_ms?.p95 ?? 0} ms</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200/70 rounded-lg">
+                  <span className="block text-[10px] font-extrabold text-indigo-700 uppercase tracking-wider">Total Pre-LLM</span>
                   <div className="mt-1 flex items-baseline justify-between">
                     <span className="text-indigo-900 font-semibold">P50 (Median):</span>
-                    <strong className="font-black text-indigo-600 text-sm">{metrics.latencies?.total_pre_llm_ms?.p50 || 0} ms</strong>
+                    <strong className="font-black text-indigo-600 text-sm">{metrics.latencies?.total_pre_llm_ms?.p50 ?? 0} ms</strong>
                   </div>
                   <div className="flex items-baseline justify-between mt-0.5">
                     <span className="text-indigo-800 text-[10px]">P95 (95th %):</span>
-                    <span className="font-bold text-indigo-900 text-xs">{metrics.latencies?.total_pre_llm_ms?.p95 || 0} ms</span>
+                    <span className="font-bold text-indigo-900 text-xs">{metrics.latencies?.total_pre_llm_ms?.p95 ?? 0} ms</span>
                   </div>
                 </div>
 
@@ -432,38 +456,54 @@ export default function ModelEvaluation({ setActiveTab }: ModelEvaluationProps) 
                 <div className="space-y-2">
                   <div className="flex justify-between py-1.5 border-b border-slate-100">
                     <span className="text-slate-500 font-semibold">Dataset</span>
-                    <strong className="font-bold text-slate-900">DDXPlus Clinical Dataset</strong>
+                    <strong className="font-bold text-slate-900">{metrics.dataset || "DDXPlus"}</strong>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-slate-500 font-semibold">Evaluation Split</span>
-                    <strong className="font-bold text-slate-900">Held-Out Test Split (Seed 42)</strong>
+                    <span className="text-slate-500 font-semibold">Split</span>
+                    <strong className="font-bold text-slate-900">{metrics.split || "Held-Out Test Split"}</strong>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-slate-500 font-semibold">Active FAISS Index Corpus</span>
-                    <strong className="font-bold text-slate-900">52,679 Stratified Cases</strong>
+                    <span className="text-slate-500 font-semibold">Training Cases Indexed in FAISS</span>
+                    <strong className="font-bold text-slate-900">{(metrics.indexed_training_cases || 52679).toLocaleString()} training cases</strong>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-slate-500 font-semibold">Embedding Encoder</span>
-                    <strong className="font-bold text-slate-900">BioClinicalBERT (768-dim)</strong>
+                    <span className="text-slate-500 font-semibold">Held-Out Test Cases Evaluated</span>
+                    <strong className="font-bold text-slate-900">{(metrics.sample_size || 2436).toLocaleString()} test cases</strong>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-100">
+                    <span className="text-slate-500 font-semibold">Pathologies Available / Evaluated</span>
+                    <strong className="font-bold text-slate-900">{metrics.pathologies_evaluated || 49} pathologies</strong>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-100">
+                    <span className="text-slate-500 font-semibold">Maximum Cases per Pathology</span>
+                    <strong className="font-bold text-slate-900">50 cases</strong>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-slate-500 font-semibold">Vector Index Type</span>
+                    <span className="text-slate-500 font-semibold">Random Seed</span>
+                    <strong className="font-bold text-slate-900">{metrics.random_seed || 42}</strong>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-100">
+                    <span className="text-slate-500 font-semibold">Retrieval Depth (K)</span>
+                    <strong className="font-bold text-slate-900">Top-{metrics.retrieval_k || 25}</strong>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-100">
+                    <span className="text-slate-500 font-semibold">Embedding Model</span>
+                    <strong className="font-bold text-slate-900">BioClinicalBERT</strong>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-100">
+                    <span className="text-slate-500 font-semibold">Embedding Dimension</span>
+                    <strong className="font-bold text-slate-900">{metrics.embedding_dimension || 768}</strong>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-100">
+                    <span className="text-slate-500 font-semibold">Vector Store Type</span>
                     <strong className="font-bold text-slate-900">FAISS IndexFlatIP (Cosine Similarity)</strong>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-slate-500 font-semibold">Knowledge Graph Engine</span>
-                    <strong className="font-bold text-slate-900">NetworkX (271 nodes, 888 edges)</strong>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-slate-500 font-semibold">LLM Reasoning Engine</span>
-                    <strong className="font-bold text-slate-900">Groq API (Qwen 27B / Llama 3)</strong>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-slate-500 font-semibold">Groq Calls in Benchmark</span>
-                    <strong className="font-black text-emerald-600">0 (100% Offline Evaluation)</strong>
+                    <span className="text-slate-500 font-semibold">Groq API Calls in Benchmark</span>
+                    <strong className="font-black text-emerald-600">0 calls</strong>
                   </div>
                 </div>
               </div>

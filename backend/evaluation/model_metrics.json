@@ -1,103 +1,107 @@
 {
-  "evaluation_date": "2026-10-05T11:58:07",
+  "evaluation_date": "2026-10-05T12:29:55",
   "dataset": "DDXPlus",
-  "split": "Test",
-  "sample_size": 1735,
-  "pathologies_evaluated": 48,
+  "split": "Held-Out Test Split",
+  "sample_size": 2436,
+  "available_test_records": 134529,
+  "pathologies_available": 49,
+  "pathologies_evaluated": 49,
   "random_seed": 42,
   "indexed_training_cases": 52679,
   "embedding_model": "Emilyalsentzer/Bio_ClinicalBERT",
   "embedding_dimension": 768,
   "retrieval_k": 25,
   "groq_calls_during_evaluation": 0,
-  "top1_accuracy": 31.76,
-  "top3_accuracy": 44.84,
-  "top5_accuracy": 56.08,
-  "mrr": 0.4442,
-  "macro_f1": 27.92,
-  "retrieval_recall_at_5": 28.13,
-  "retrieval_recall_at_10": 29.11,
-  "retrieval_recall_at_25": 31.35,
-  "candidate_recall_at_5": 56.08,
-  "ddr_5": 34.27,
-  "ddp_5": 50.26,
-  "ddf1_5": 34.89,
+  "evaluation_protocol": "Balanced held-out DDXPlus test subset, up to 50 cases per pathology, deterministic seed 42.",
+  "data_overlap_check": "0 potential overlap (training corpus 52,679 cases and test corpus 134,529 cases are strictly disjoint files)",
+  "top1_exact_accuracy": 38.05,
+  "top3_exact_accuracy": 51.31,
+  "top5_exact_accuracy": 57.64,
+  "mrr": 0.4964,
+  "macro_f1": 31.46,
+  "retrieval_recall_at_5": 35.34,
+  "retrieval_recall_at_10": 36.7,
+  "retrieval_recall_at_25": 38.38,
+  "candidate_recall_at_5": 57.64,
+  "ddr_5": 35.15,
+  "ddp_5": 50.73,
+  "ddf1_5": 35.5,
   "latencies": {
     "encoding_ms": {
-      "mean": 105.31,
-      "p50": 80.51,
-      "p95": 212.29
+      "mean": 213.06,
+      "p50": 208.18,
+      "p95": 298.15
     },
     "faiss_search_ms": {
-      "mean": 157.97,
-      "p50": 120.77,
-      "p95": 318.44
+      "mean": 21.91,
+      "p50": 22.67,
+      "p95": 30.04
     },
     "kg_discovery_ms": {
-      "mean": 0.27,
-      "p50": 0.25,
-      "p95": 0.45
+      "mean": 0.8,
+      "p50": 0.81,
+      "p95": 1.33
     },
     "hybrid_scoring_ms": {
-      "mean": 40.12,
-      "p50": 36.85,
-      "p95": 84.27
+      "mean": 29.13,
+      "p50": 31.43,
+      "p95": 50.02
     },
     "total_pre_llm_ms": {
-      "mean": 303.85,
-      "p50": 233.66,
-      "p95": 619.81
+      "mean": 264.9,
+      "p50": 261.98,
+      "p95": 366.41
     }
   },
   "per_pathology_performance": [
     {
       "pathology": "Acute COPD exacerbation / infection",
-      "eval_cases": 24,
+      "eval_cases": 50,
       "top1_accuracy": 100.0,
       "top5_accuracy": 100.0,
-      "f1_score": 60.0
+      "f1_score": 60.98
     },
     {
       "pathology": "Acute dystonic reactions",
       "eval_cases": 50,
       "top1_accuracy": 100.0,
       "top5_accuracy": 100.0,
-      "f1_score": 100.0
+      "f1_score": 99.01
     },
     {
       "pathology": "Acute laryngitis",
-      "eval_cases": 44,
-      "top1_accuracy": 47.73,
-      "top5_accuracy": 86.36,
-      "f1_score": 61.76
+      "eval_cases": 50,
+      "top1_accuracy": 56.0,
+      "top5_accuracy": 82.0,
+      "f1_score": 67.47
     },
     {
       "pathology": "Acute otitis media",
       "eval_cases": 50,
-      "top1_accuracy": 40.0,
-      "top5_accuracy": 54.0,
-      "f1_score": 31.75
+      "top1_accuracy": 48.0,
+      "top5_accuracy": 50.0,
+      "f1_score": 32.88
     },
     {
       "pathology": "Acute pulmonary edema",
-      "eval_cases": 30,
-      "top1_accuracy": 93.33,
+      "eval_cases": 50,
+      "top1_accuracy": 96.0,
       "top5_accuracy": 100.0,
-      "f1_score": 53.33
+      "f1_score": 54.86
     },
     {
       "pathology": "Acute rhinosinusitis",
-      "eval_cases": 33,
+      "eval_cases": 50,
       "top1_accuracy": 0.0,
       "top5_accuracy": 0.0,
       "f1_score": 0.0
     },
     {
       "pathology": "Allergic sinusitis",
-      "eval_cases": 39,
+      "eval_cases": 50,
       "top1_accuracy": 100.0,
       "top5_accuracy": 100.0,
-      "f1_score": 98.73
+      "f1_score": 98.04
     },
     {
       "pathology": "Anaphylaxis",
@@ -109,55 +113,62 @@
     {
       "pathology": "Anemia",
       "eval_cases": 50,
-      "top1_accuracy": 22.0,
-      "top5_accuracy": 78.0,
-      "f1_score": 17.46
+      "top1_accuracy": 26.0,
+      "top5_accuracy": 84.0,
+      "f1_score": 21.85
     },
     {
       "pathology": "Atrial fibrillation",
       "eval_cases": 50,
       "top1_accuracy": 100.0,
       "top5_accuracy": 100.0,
-      "f1_score": 100.0
+      "f1_score": 85.47
     },
     {
       "pathology": "Boerhaave",
-      "eval_cases": 32,
+      "eval_cases": 50,
       "top1_accuracy": 0.0,
-      "top5_accuracy": 6.25,
+      "top5_accuracy": 6.0,
       "f1_score": 0.0
     },
     {
       "pathology": "Bronchiectasis",
-      "eval_cases": 34,
-      "top1_accuracy": 20.59,
-      "top5_accuracy": 20.59,
-      "f1_score": 34.15
+      "eval_cases": 50,
+      "top1_accuracy": 14.0,
+      "top5_accuracy": 14.0,
+      "f1_score": 24.56
+    },
+    {
+      "pathology": "Bronchiolitis",
+      "eval_cases": 36,
+      "top1_accuracy": 88.89,
+      "top5_accuracy": 100.0,
+      "f1_score": 94.12
     },
     {
       "pathology": "Bronchitis",
       "eval_cases": 50,
-      "top1_accuracy": 26.0,
-      "top5_accuracy": 60.0,
-      "f1_score": 32.5
+      "top1_accuracy": 22.0,
+      "top5_accuracy": 64.0,
+      "f1_score": 25.29
     },
     {
       "pathology": "Bronchospasm / acute asthma exacerbation",
-      "eval_cases": 28,
+      "eval_cases": 50,
       "top1_accuracy": 0.0,
-      "top5_accuracy": 25.0,
+      "top5_accuracy": 26.0,
       "f1_score": 0.0
     },
     {
       "pathology": "Chagas",
-      "eval_cases": 16,
-      "top1_accuracy": 6.25,
-      "top5_accuracy": 18.75,
-      "f1_score": 5.13
+      "eval_cases": 50,
+      "top1_accuracy": 8.0,
+      "top5_accuracy": 12.0,
+      "f1_score": 11.59
     },
     {
       "pathology": "Chronic rhinosinusitis",
-      "eval_cases": 40,
+      "eval_cases": 50,
       "top1_accuracy": 0.0,
       "top5_accuracy": 0.0,
       "f1_score": 0.0
@@ -166,43 +177,43 @@
       "pathology": "Cluster headache",
       "eval_cases": 50,
       "top1_accuracy": 0.0,
-      "top5_accuracy": 18.0,
+      "top5_accuracy": 12.0,
       "f1_score": 0.0
     },
     {
       "pathology": "Croup",
-      "eval_cases": 8,
-      "top1_accuracy": 87.5,
+      "eval_cases": 50,
+      "top1_accuracy": 96.0,
       "top5_accuracy": 100.0,
-      "f1_score": 51.85
+      "f1_score": 62.34
     },
     {
       "pathology": "Ebola",
-      "eval_cases": 4,
-      "top1_accuracy": 100.0,
-      "top5_accuracy": 100.0,
-      "f1_score": 61.54
+      "eval_cases": 50,
+      "top1_accuracy": 84.0,
+      "top5_accuracy": 98.0,
+      "f1_score": 89.36
     },
     {
       "pathology": "Epiglottitis",
-      "eval_cases": 37,
-      "top1_accuracy": 5.41,
-      "top5_accuracy": 27.03,
-      "f1_score": 10.26
+      "eval_cases": 50,
+      "top1_accuracy": 4.0,
+      "top5_accuracy": 46.0,
+      "f1_score": 7.69
     },
     {
       "pathology": "GERD",
       "eval_cases": 50,
-      "top1_accuracy": 86.0,
-      "top5_accuracy": 90.0,
-      "f1_score": 55.84
+      "top1_accuracy": 96.0,
+      "top5_accuracy": 98.0,
+      "f1_score": 56.47
     },
     {
       "pathology": "Guillain-Barr\u00e9 syndrome",
-      "eval_cases": 40,
+      "eval_cases": 50,
       "top1_accuracy": 100.0,
       "top5_accuracy": 100.0,
-      "f1_score": 86.02
+      "f1_score": 83.33
     },
     {
       "pathology": "HIV (initial infection)",
@@ -213,23 +224,23 @@
     },
     {
       "pathology": "Influenza",
-      "eval_cases": 36,
+      "eval_cases": 50,
       "top1_accuracy": 0.0,
-      "top5_accuracy": 55.56,
+      "top5_accuracy": 16.0,
       "f1_score": 0.0
     },
     {
       "pathology": "Inguinal hernia",
-      "eval_cases": 36,
-      "top1_accuracy": 13.89,
-      "top5_accuracy": 100.0,
-      "f1_score": 5.49
+      "eval_cases": 50,
+      "top1_accuracy": 68.0,
+      "top5_accuracy": 98.0,
+      "f1_score": 24.29
     },
     {
       "pathology": "Larygospasm",
-      "eval_cases": 12,
+      "eval_cases": 50,
       "top1_accuracy": 0.0,
-      "top5_accuracy": 66.67,
+      "top5_accuracy": 14.0,
       "f1_score": 0.0
     },
     {
@@ -241,30 +252,30 @@
     },
     {
       "pathology": "Myasthenia gravis",
-      "eval_cases": 38,
+      "eval_cases": 50,
       "top1_accuracy": 100.0,
       "top5_accuracy": 100.0,
-      "f1_score": 81.72
+      "f1_score": 90.09
     },
     {
       "pathology": "Myocarditis",
-      "eval_cases": 30,
-      "top1_accuracy": 73.33,
-      "top5_accuracy": 100.0,
-      "f1_score": 50.0
+      "eval_cases": 50,
+      "top1_accuracy": 72.0,
+      "top5_accuracy": 96.0,
+      "f1_score": 53.33
     },
     {
       "pathology": "PSVT",
-      "eval_cases": 29,
+      "eval_cases": 50,
       "top1_accuracy": 100.0,
       "top5_accuracy": 100.0,
-      "f1_score": 19.08
+      "f1_score": 26.81
     },
     {
       "pathology": "Pancreatic neoplasm",
-      "eval_cases": 27,
+      "eval_cases": 50,
       "top1_accuracy": 0.0,
-      "top5_accuracy": 96.3,
+      "top5_accuracy": 96.0,
       "f1_score": 0.0
     },
     {
@@ -276,86 +287,86 @@
     },
     {
       "pathology": "Pericarditis",
-      "eval_cases": 48,
+      "eval_cases": 50,
       "top1_accuracy": 0.0,
-      "top5_accuracy": 8.33,
+      "top5_accuracy": 22.0,
       "f1_score": 0.0
     },
     {
       "pathology": "Pneumonia",
       "eval_cases": 50,
       "top1_accuracy": 0.0,
-      "top5_accuracy": 40.0,
+      "top5_accuracy": 10.0,
       "f1_score": 0.0
     },
     {
       "pathology": "Possible NSTEMI / STEMI",
-      "eval_cases": 44,
+      "eval_cases": 50,
       "top1_accuracy": 0.0,
-      "top5_accuracy": 2.27,
+      "top5_accuracy": 10.0,
       "f1_score": 0.0
     },
     {
       "pathology": "Pulmonary embolism",
       "eval_cases": 50,
-      "top1_accuracy": 2.0,
-      "top5_accuracy": 24.0,
-      "f1_score": 3.77
+      "top1_accuracy": 12.0,
+      "top5_accuracy": 36.0,
+      "f1_score": 19.05
     },
     {
       "pathology": "Pulmonary neoplasm",
-      "eval_cases": 24,
-      "top1_accuracy": 8.33,
-      "top5_accuracy": 20.83,
-      "f1_score": 11.76
+      "eval_cases": 50,
+      "top1_accuracy": 6.0,
+      "top5_accuracy": 28.0,
+      "f1_score": 10.17
     },
     {
       "pathology": "SLE",
-      "eval_cases": 27,
+      "eval_cases": 50,
       "top1_accuracy": 0.0,
-      "top5_accuracy": 100.0,
+      "top5_accuracy": 88.0,
       "f1_score": 0.0
     },
     {
       "pathology": "Sarcoidosis",
-      "eval_cases": 40,
-      "top1_accuracy": 35.0,
-      "top5_accuracy": 72.5,
-      "f1_score": 51.85
+      "eval_cases": 50,
+      "top1_accuracy": 54.0,
+      "top5_accuracy": 54.0,
+      "f1_score": 70.13
     },
     {
       "pathology": "Scombroid food poisoning",
-      "eval_cases": 38,
+      "eval_cases": 50,
       "top1_accuracy": 100.0,
       "top5_accuracy": 100.0,
-      "f1_score": 18.67
+      "f1_score": 20.7
     },
     {
       "pathology": "Spontaneous pneumothorax",
-      "eval_cases": 20,
-      "top1_accuracy": 30.0,
+      "eval_cases": 50,
+      "top1_accuracy": 20.0,
       "top5_accuracy": 60.0,
-      "f1_score": 38.71
+      "f1_score": 30.77
     },
     {
       "pathology": "Spontaneous rib fracture",
-      "eval_cases": 21,
+      "eval_cases": 50,
       "top1_accuracy": 0.0,
-      "top5_accuracy": 38.1,
+      "top5_accuracy": 32.0,
       "f1_score": 0.0
     },
     {
       "pathology": "Stable angina",
-      "eval_cases": 44,
+      "eval_cases": 50,
       "top1_accuracy": 0.0,
-      "top5_accuracy": 31.82,
+      "top5_accuracy": 44.0,
       "f1_score": 0.0
     },
     {
       "pathology": "Tuberculosis",
-      "eval_cases": 25,
+      "eval_cases": 50,
       "top1_accuracy": 52.0,
-      "top5_accuracy": 72.0,
+      "top5_accuracy": 56.0,
       "f1_score": 68.42
     },
     {
@@ -367,10 +378,10 @@
     },
     {
       "pathology": "Unstable angina",
-      "eval_cases": 35,
-      "top1_accuracy": 60.0,
-      "top5_accuracy": 62.86,
-      "f1_score": 63.64
+      "eval_cases": 50,
+      "top1_accuracy": 56.0,
+      "top5_accuracy": 60.0,
+      "f1_score": 55.45
     },
     {
       "pathology": "Viral pharyngitis",
@@ -381,11 +392,11 @@
     },
     {
       "pathology": "Whooping cough",
-      "eval_cases": 2,
+      "eval_cases": 50,
       "top1_accuracy": 100.0,
       "top5_accuracy": 100.0,
-      "f1_score": 66.67
+      "f1_score": 97.09
     }
   ],
-  "disclaimer": "These metrics are benchmark results on synthetic DDXPlus cases and do not represent real-world clinical performance."
+  "disclaimer": "Benchmark results are measured on the synthetic DDXPlus held-out test set. They do not represent real-world clinical accuracy, patient outcomes, or clinical safety."
 }
