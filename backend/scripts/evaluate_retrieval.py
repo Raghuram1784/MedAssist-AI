@@ -70,51 +70,29 @@ def evaluate_retrieval_cases():
             
         # 3. Knowledge Graph Evidence & Hybrid Scoring evaluation
         print(f"\n[Candidate Ranking & Knowledge Graph Evidence]:")
-        # Evaluate candidate pool
         candidate_pool = set(path_counts.keys())
+        for case in cases_25:
+            for diff_item in case.get("differential", []):
+                if isinstance(diff_item, dict) and "pathology" in diff_item:
+                    candidate_pool.add(diff_item["pathology"])
         for sym in norm_syms:
-            for d in system.graph.predecessors(sym) if sym in system.graph else []:
-                candidate_pool.add(d)
+            if sym in system.graph:
+                for d in system.graph.predecessors(sym):
+                    candidate_pool.add(d)
                 
-        scored = []
-        for candidate in candidate_pool:
-            kg_info = get_disease_explanation(graph, candidate, norm_syms)
-            matched = kg_info.get("matched_symptoms", [])
-            kg_match_ratio = len(matched) / max(1, len(norm_syms))
-            
-            faiss_count = path_counts.get(candidate, 0)
-            faiss_freq_score = faiss_count / 25.0
-            
-            # Simple hybrid evaluation score
-            score = (0.55 * kg_match_ratio) + (0.45 * faiss_freq_score)
-            
-            # Severe condition generic penalty check
-            if candidate in ["Tuberculosis", "Ebola", "Bronchiectasis", "SLE"] and len(norm_syms) <= 2:
-                has_dist = any(s in ["coughing up blood", "weight loss", "night sweats"] for s in norm_syms)
-                if not has_dist:
-                    score -= 0.35
-                    
-            scored.append({
-                "disease": candidate,
-                "score": score,
-                "kg_matched": matched,
-                "kg_unmatched": kg_info.get("unmatched_symptoms", [])[:3],
-                "faiss_count": faiss_count
-            })
-            
-        scored.sort(key=lambda x: x["score"], reverse=True)
+        scored_candidates = system.score_and_rank_candidates(norm_syms, cases_25, candidate_pool)
         
-        for idx, item in enumerate(scored[:4]):
-            print(f"  Rank #{idx+1}: {item['disease']} (Hybrid Score: {item['score']:.3f})")
-            print(f"    - KG Matched Symptoms: {item['kg_matched']}")
+        for idx, item in enumerate(scored_candidates[:4]):
+            kg_info = item.get("kg_info", {})
+            print(f"  Rank #{idx+1}: {item['disease']} (Hybrid Score: {item['hybrid_score']:.3f})")
+            print(f"    - KG Matched Symptoms: {kg_info.get('matched_symptoms', [])}")
             print(f"    - FAISS Cases Found: {item['faiss_count']}/25")
-            print(f"    - Unmatched Symptoms to watch: {item['kg_unmatched']}")
+            print(f"    - Unmatched Symptoms to watch: {kg_info.get('unmatched_symptoms', [])[:3]}")
             
-        # Verify cold + cough specific check
-        if "Cold" in case_data['symptoms'] or "Cough" in case_data['symptoms']:
-            tb_rank = next((i+1 for i, s in enumerate(scored) if s["disease"] == "Tuberculosis"), None)
-            top_dx = scored[0]["disease"]
-            print(f"\n  [Cold + Cough Audit Verification]: Top candidate is '{top_dx}'. Tuberculosis rank: #{tb_rank}")
+        case_label = case_data['name'].partition(': ')[2] if ': ' in case_data['name'] else case_data['name']
+        tb_rank = next((i+1 for i, s in enumerate(scored_candidates) if s["disease"] == "Tuberculosis"), None)
+        top_dx = scored_candidates[0]["disease"]
+        print(f"\n  [{case_label} Audit Verification]: Top candidate is '{top_dx}'. Tuberculosis rank: #{tb_rank}")
 
 if __name__ == "__main__":
     evaluate_retrieval_cases()

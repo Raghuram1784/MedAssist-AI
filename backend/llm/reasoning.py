@@ -31,6 +31,106 @@ class ClinicalReasoningSystem:
         self.graph = graph
         self.llm_client = LLMClient()
 
+    def score_and_rank_candidates(
+        self,
+        normalized_symptoms: List[str],
+        retrieved_cases_25: List[Dict[str, Any]],
+        candidate_pool: set
+    ) -> List[Dict[str, Any]]:
+        """
+        Score and rank candidate diseases using multi-factor clinical evidence:
+        1. KG Symptom Match Ratio (fraction of query symptoms explained by candidate)
+        2. KG Symptom Completeness (fraction of candidate's typical symptoms present)
+        3. FAISS Cohort Frequency & Vector Similarity
+        4. DDXPlus Differential Probability from cohort
+        5. Zero-FAISS Support Discount (to prevent ungrounded KG candidates from dominating)
+        6. Distinguishing Symptom Penalty for generic severe presentations
+        7. Deterministic Tie-Breaking
+        """
+        from collections import Counter
+        from backend.knowledge_graph.graph_queries import get_symptoms_for_disease
+        
+        path_counts = Counter([c["ground_truth"] for c in retrieved_cases_25 if "ground_truth" in c])
+        has_any_faiss_support = any(path_counts.get(c, 0) > 0 for c in path_counts)
+        num_query_symptoms = max(1, len(normalized_symptoms))
+        
+        W_KG_MATCH = 0.40
+        W_KG_COMPLETENESS = 0.15
+        W_FAISS = 0.30
+        W_DIFF = 0.15
+        
+        scored_candidates = []
+        for candidate in candidate_pool:
+            # a) KG Symptom Match Ratio & Disease Completeness
+            kg_info = get_disease_explanation(self.graph, candidate, normalized_symptoms)
+            matched_symptoms = kg_info.get("matched_symptoms", [])
+            kg_match_ratio = len(matched_symptoms) / num_query_symptoms
+            
+            all_disease_symptoms = get_symptoms_for_disease(self.graph, candidate)
+            num_total_disease_syms = max(len(matched_symptoms), len(all_disease_symptoms))
+            kg_completeness = len(matched_symptoms) / max(1, num_total_disease_syms)
+            
+            # b) FAISS Vector Evidence & Frequency
+            faiss_sim_sum = 0.0
+            faiss_count = 0
+            diff_prob_sum = 0.0
+            
+            for case in retrieved_cases_25:
+                sim = case.get("similarity_score", 0.0)
+                gt = case.get("ground_truth", "")
+                if gt.lower() == candidate.lower():
+                    faiss_sim_sum += sim
+                    faiss_count += 1
+                    
+                for diff_item in case.get("differential", []):
+                    if isinstance(diff_item, dict) and diff_item.get("pathology", "").lower() == candidate.lower():
+                        diff_prob_sum += float(diff_item.get("probability", 0.0)) * sim
+                        
+            faiss_freq_score = (faiss_count / len(retrieved_cases_25)) if retrieved_cases_25 else 0.0
+            avg_sim = (faiss_sim_sum / faiss_count) if faiss_count > 0 else 0.0
+            faiss_score = (0.6 * faiss_freq_score) + (0.4 * avg_sim)
+            diff_score = min(1.0, diff_prob_sum / max(1, faiss_count if faiss_count > 0 else 1))
+            
+            # c) Zero-FAISS Support Factor
+            faiss_support_mult = 1.0
+            if faiss_count == 0 and diff_prob_sum == 0.0 and has_any_faiss_support:
+                faiss_support_mult = 0.85
+                
+            # d) Severe Pathology Distinguishing Symptom Penalty
+            penalty = 0.0
+            if candidate in SPECIFIC_SEVERE_PATHOLOGIES:
+                required_features = SPECIFIC_SEVERE_PATHOLOGIES[candidate]
+                has_distinguishing_feature = any(
+                    feat.lower() in [s.lower() for s in normalized_symptoms]
+                    for feat in required_features
+                )
+                if not has_distinguishing_feature and num_query_symptoms <= 3:
+                    penalty = 0.25
+                    
+            raw_score = (W_KG_MATCH * kg_match_ratio) + (W_KG_COMPLETENESS * kg_completeness) + (W_FAISS * faiss_score) + (W_DIFF * diff_score)
+            hybrid_score = (raw_score * faiss_support_mult) - penalty
+            
+            scored_candidates.append({
+                "disease": candidate,
+                "hybrid_score": hybrid_score,
+                "kg_match_ratio": kg_match_ratio,
+                "kg_completeness": kg_completeness,
+                "faiss_count": faiss_count,
+                "kg_info": kg_info
+            })
+            
+        # Sort candidates deterministically: hybrid_score desc, faiss_count desc, matched count desc, kg_completeness desc
+        scored_candidates.sort(
+            key=lambda x: (
+                x["hybrid_score"],
+                x["faiss_count"],
+                len(x["kg_info"].get("matched_symptoms", [])),
+                x["kg_completeness"]
+            ),
+            reverse=True
+        )
+        return scored_candidates
+
     def generate_clinical_reasoning(
         self,
         age: int,
@@ -79,66 +179,8 @@ class ClinicalReasoningSystem:
             for d in kg_diseases:
                 candidate_pool.add(d)
 
-        # 4. Multi-Factor Hybrid Candidate Scoring
-        # Scoring Weights:
-        W_KG = 0.45       # Weight for Knowledge Graph symptom match ratio
-        W_FAISS = 0.35    # Weight for FAISS cohort frequency & vector similarity
-        W_DIFF = 0.20     # Weight for DDXPlus differential probability
-        
-        scored_candidates = []
-        num_query_symptoms = max(1, len(normalized_symptoms))
-        
-        for candidate in candidate_pool:
-            # a) KG Symptom Match Ratio
-            kg_info = get_disease_explanation(self.graph, candidate, normalized_symptoms)
-            matched_symptoms = kg_info.get("matched_symptoms", [])
-            kg_match_ratio = len(matched_symptoms) / num_query_symptoms
-            
-            # b) FAISS Vector Evidence & Frequency
-            faiss_sim_sum = 0.0
-            faiss_count = 0
-            diff_prob_sum = 0.0
-            
-            for case in retrieved_cases_25:
-                sim = case.get("similarity_score", 0.0)
-                gt = case.get("ground_truth", "")
-                if gt.lower() == candidate.lower():
-                    faiss_sim_sum += sim
-                    faiss_count += 1
-                    
-                for diff_item in case.get("differential", []):
-                    if isinstance(diff_item, dict) and diff_item.get("pathology", "").lower() == candidate.lower():
-                        diff_prob_sum += float(diff_item.get("probability", 0.0)) * sim
-                        
-            faiss_freq_score = (faiss_count / len(retrieved_cases_25)) if retrieved_cases_25 else 0.0
-            avg_sim = (faiss_sim_sum / faiss_count) if faiss_count > 0 else 0.0
-            faiss_score = (0.6 * faiss_freq_score) + (0.4 * avg_sim)
-            diff_score = min(1.0, diff_prob_sum / max(1, faiss_count if faiss_count > 0 else 1))
-            
-            # c) Generic Input & Distinguishing Symptom Penalty
-            penalty = 0.0
-            if candidate in SPECIFIC_SEVERE_PATHOLOGIES:
-                required_features = SPECIFIC_SEVERE_PATHOLOGIES[candidate]
-                has_distinguishing_feature = any(
-                    feat.lower() in [s.lower() for s in normalized_symptoms]
-                    for feat in required_features
-                )
-                if not has_distinguishing_feature and num_query_symptoms <= 3:
-                    penalty = 0.30  # Apply penalty if generic presentation lacks key distinguishing symptoms
-                    
-            # Compute Hybrid Score
-            hybrid_score = (W_KG * kg_match_ratio) + (W_FAISS * faiss_score) + (W_DIFF * diff_score) - penalty
-            
-            scored_candidates.append({
-                "disease": candidate,
-                "hybrid_score": hybrid_score,
-                "kg_match_ratio": kg_match_ratio,
-                "faiss_count": faiss_count,
-                "kg_info": kg_info
-            })
-            
-        # Sort candidates by hybrid score descending
-        scored_candidates.sort(key=lambda x: x["hybrid_score"], reverse=True)
+        # 4. Multi-Factor Hybrid Candidate Scoring & Ranking
+        scored_candidates = self.score_and_rank_candidates(normalized_symptoms, retrieved_cases_25, candidate_pool)
         
         # Select top 5 candidates for detailed evidence breakdown
         top_candidates = scored_candidates[:5]
@@ -148,6 +190,7 @@ class ClinicalReasoningSystem:
         # 5. Determine Confidence Level based on Evidence Specificity
         best_score = top_candidates[0]["hybrid_score"] if top_candidates else 0.0
         best_kg_match = top_candidates[0]["kg_match_ratio"] if top_candidates else 0.0
+        num_query_symptoms = len(normalized_symptoms)
         
         if num_query_symptoms <= 2 and best_kg_match < 0.7:
             confidence_level = "Medium - Generic presentation with multiple plausible candidates; key distinguishing features missing."
