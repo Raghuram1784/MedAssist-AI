@@ -32,6 +32,7 @@ interface NewAssessmentProps {
   onAnalyze: (e: React.FormEvent) => void;
   onReset: () => void;
   COMMON_DEMO_SYMPTOMS: string[];
+  setActiveTab?: (tab: "dashboard" | "assessment" | "methodology" | "about" | "history" | "evaluation") => void;
 }
 
 export default function NewAssessment({
@@ -52,7 +53,8 @@ export default function NewAssessment({
   systemStatus,
   onAnalyze,
   onReset,
-  COMMON_DEMO_SYMPTOMS
+  COMMON_DEMO_SYMPTOMS,
+  setActiveTab
 }: NewAssessmentProps) {
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -72,6 +74,24 @@ export default function NewAssessment({
       }
     }, 800);
   };
+
+  // Calculate actual matched and missing evidence across displayed KG support
+  const allMatched = new Set<string>();
+  const allMissing = new Set<string>();
+
+  if (analysisResult?.knowledge_graph_support) {
+    analysisResult.knowledge_graph_support.forEach((kg) => {
+      kg.matched_symptoms.forEach((s) => allMatched.add(s.toLowerCase()));
+      kg.unmatched_symptoms.forEach((s) => allMissing.add(s.toLowerCase()));
+    });
+  }
+
+  const matchedCount = allMatched.size;
+  const missingCount = allMissing.size;
+
+  const topSimilarity = analysisResult?.similar_cases && analysisResult.similar_cases.length > 0
+    ? (Math.max(...analysisResult.similar_cases.map((c) => c.similarity_score)) * 100).toFixed(1)
+    : "0.0";
 
   return (
     <>
@@ -152,6 +172,17 @@ export default function NewAssessment({
                 </div>
 
                 <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                  {setActiveTab && (
+                    <Button
+                      onClick={() => setActiveTab("evaluation")}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs gap-1.5 px-3 font-bold text-slate-700 border-slate-200 hover:bg-slate-100 bg-white cursor-pointer rounded-lg shadow-xs transition-all"
+                    >
+                      <Activity size={13} className="text-indigo-600 stroke-[2.5]" />
+                      View Model Evaluation
+                    </Button>
+                  )}
                   <Button 
                     onClick={handleDownloadReport} 
                     variant="outline" 
@@ -174,6 +205,36 @@ export default function NewAssessment({
                 </div>
               </div>
 
+              {/* Compact Evidence Retrieval Summary Card */}
+              <div className="p-3.5 bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl shadow-sm border border-slate-800 select-none">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                      <Activity size={13} className="text-indigo-400" /> Evidence Retrieval Summary
+                    </h4>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-slate-200 font-medium">
+                      <span><strong>25</strong> cases retrieved (FAISS depth)</span>
+                      <span>•</span>
+                      <span><strong>{analysisResult.similar_cases.length}</strong> representative cases shown</span>
+                      <span>•</span>
+                      <span><strong>{analysisResult.possible_conditions.length}</strong> candidate conditions evaluated</span>
+                      <span>•</span>
+                      <span><strong>{topSimilarity}%</strong> highest semantic similarity</span>
+                      <span>•</span>
+                      <span><strong>{matchedCount}</strong> matched / <strong>{missingCount}</strong> unreported KG findings</span>
+                    </div>
+                  </div>
+                  {setActiveTab && (
+                    <button
+                      onClick={() => setActiveTab("evaluation")}
+                      className="self-start sm:self-auto px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold rounded-lg shadow transition-all shrink-0 cursor-pointer"
+                    >
+                      View Offline Benchmark →
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Top demographics summary & slider dial */}
               <PatientSummary 
                 age={analysisResult.patient_summary.age}
@@ -183,8 +244,8 @@ export default function NewAssessment({
                 confidenceLevel={analysisResult.confidence_level}
                 conditionsCount={analysisResult.possible_conditions.length}
                 casesCount={analysisResult.similar_cases.length}
-                matchedCount={analysisResult.patient_summary.symptoms.length}
-                missingCount={analysisResult.knowledge_graph_support[0]?.unmatched_symptoms.length || 0}
+                matchedCount={matchedCount}
+                missingCount={missingCount}
               />
 
               {/* Mapped conditions accordions */}

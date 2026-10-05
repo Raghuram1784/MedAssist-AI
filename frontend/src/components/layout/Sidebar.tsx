@@ -5,12 +5,13 @@ import {
   History, 
   BookOpen, 
   Info,
-  User
+  User,
+  BarChart3
 } from "lucide-react";
 
 interface SidebarProps {
-  activeTab: "dashboard" | "assessment" | "methodology" | "about" | "history";
-  setActiveTab: (tab: "dashboard" | "assessment" | "methodology" | "about" | "history") => void;
+  activeTab: "dashboard" | "assessment" | "methodology" | "about" | "history" | "evaluation";
+  setActiveTab: (tab: "dashboard" | "assessment" | "methodology" | "about" | "history" | "evaluation") => void;
   systemStatus: string;
 }
 
@@ -69,6 +70,18 @@ export default function Sidebar({ activeTab, setActiveTab, systemStatus }: Sideb
           >
             <History size={14} className={activeTab === "history" ? "text-white" : "text-slate-400"} />
             Assessment History
+          </button>
+
+          <button 
+            onClick={() => setActiveTab("evaluation")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold tracking-tight transition-all ${
+              activeTab === "evaluation" 
+                ? "bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] text-white shadow-md shadow-indigo-600/15" 
+                : "text-slate-400 hover:bg-slate-800/40 hover:text-slate-200"
+            }`}
+          >
+            <BarChart3 size={14} className={activeTab === "evaluation" ? "text-white" : "text-slate-400"} />
+            Model Evaluation
           </button>
 
           <button 

@@ -15,6 +15,7 @@ import NewAssessment from "./pages/NewAssessment";
 import AssessmentHistory from "./pages/AssessmentHistory";
 import Methodology from "./pages/Methodology";
 import About from "./pages/About";
+import ModelEvaluation from "./pages/ModelEvaluation";
 
 const COMMON_DEMO_SYMPTOMS = [
   "Fever",
@@ -31,7 +32,7 @@ const COMMON_DEMO_SYMPTOMS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "assessment" | "methodology" | "about" | "history">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "assessment" | "methodology" | "about" | "history" | "evaluation">("dashboard");
   const [systemStatus, setSystemStatus] = useState<"connecting" | "healthy" | "error">("connecting");
   
   // Intake Form parameters State
@@ -195,12 +196,14 @@ export default function App() {
                 {activeTab === "dashboard" ? "Dashboard" :
                  activeTab === "assessment" ? "Clinical Case Workspace" :
                  activeTab === "history" ? "Assessment History" :
+                 activeTab === "evaluation" ? "Model Evaluation & Benchmark Performance" :
                  activeTab === "methodology" ? "Clinical Methodology" : "About MedAssist AI"}
               </h2>
               <p className="text-[10px] text-[#64748B] mt-0.5 font-medium leading-none">
                 {activeTab === "dashboard" ? "Overview of the MedAssist AI clinical decision support system" :
                  activeTab === "assessment" ? "Input patient metrics and trigger evidence-grounded analysis" :
                  activeTab === "history" ? "Review and manage previously generated clinical report records" :
+                 activeTab === "evaluation" ? "Offline benchmark metrics on held-out DDXPlus test cases" :
                  activeTab === "methodology" ? "Multi-layer clinical reasoning combining semantic search and knowledge graphs" : "Research prototype constraints & safety scope"}
               </p>
             </div>
@@ -208,7 +211,7 @@ export default function App() {
             {/* Quick Metrics display */}
             <div className="flex items-center gap-2 text-[9px] font-mono select-none">
               <span className="px-2 py-0.5 bg-slate-100 rounded border border-slate-200 text-slate-600 font-semibold">
-                Cases: 10,000
+                Cases: 52,679
               </span>
               <span className="px-2 py-0.5 bg-slate-100 rounded border border-slate-200 text-slate-600 font-semibold">
                 KG Nodes: 271
@@ -247,6 +250,7 @@ export default function App() {
                   onAnalyze={handleAnalyze}
                   onReset={resetForm}
                   COMMON_DEMO_SYMPTOMS={COMMON_DEMO_SYMPTOMS}
+                  setActiveTab={setActiveTab}
                 />
               )}
 
@@ -255,6 +259,10 @@ export default function App() {
                   onViewRecord={handleViewRecord} 
                   setActiveTab={setActiveTab}
                 />
+              )}
+
+              {activeTab === "evaluation" && (
+                <ModelEvaluation setActiveTab={setActiveTab} />
               )}
 
               {activeTab === "methodology" && (

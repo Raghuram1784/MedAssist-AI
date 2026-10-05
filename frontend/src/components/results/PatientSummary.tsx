@@ -104,7 +104,10 @@ export default function PatientSummary({
         {/* 2. Confidence Level Card (3 columns) */}
         <Card className="lg:col-span-3 shadow-sm border border-[#E2E8F0] bg-white rounded-xl flex flex-col justify-between">
           <CardContent className="p-4 flex-1 flex flex-col justify-between space-y-2">
-            <span className="block text-[10px] text-[#64748B] font-extrabold uppercase tracking-wider">Confidence Level</span>
+            <div className="flex items-center justify-between">
+              <span className="block text-[10px] text-[#64748B] font-extrabold uppercase tracking-wider">Evidence Confidence</span>
+              <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded uppercase">Qualitative</span>
+            </div>
             
             <div className="text-center py-0.5">
               <span className={`block font-black text-2xl tracking-wider uppercase leading-none ${
@@ -112,25 +115,28 @@ export default function PatientSummary({
               }`}>
                 {parsedLevel}
               </span>
+              <span className="text-[9px] text-slate-400 font-semibold tracking-wider uppercase block mt-1">
+                Evidence Support Tier
+              </span>
             </div>
 
-            {/* Slider line indicator */}
+            {/* Qualitative Tier indicator */}
             <div className="space-y-1">
-              <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden border border-slate-200/50">
-                <div className={`h-full rounded-full transition-all duration-500 ${
-                  isHigh ? "bg-emerald-500 w-[85%]" : isMedium ? "bg-amber-500 w-[55%]" : "bg-rose-500 w-[25%]"
-                }`} />
+              <div className="grid grid-cols-3 gap-1">
+                <div className={`h-1.5 rounded-l-full ${isHigh || isMedium || !isHigh && !isMedium ? (isHigh ? "bg-emerald-500" : isMedium ? "bg-amber-400" : "bg-rose-500") : "bg-slate-100"}`} />
+                <div className={`h-1.5 ${isHigh || isMedium ? (isHigh ? "bg-emerald-500" : "bg-amber-500") : "bg-slate-100"}`} />
+                <div className={`h-1.5 rounded-r-full ${isHigh ? "bg-emerald-500" : "bg-slate-100"}`} />
               </div>
               <div className="flex justify-between text-[8px] text-slate-400 font-extrabold uppercase tracking-widest pt-0.5 leading-none">
-                <span>Low</span>
-                <span>Medium</span>
-                <span>High</span>
+                <span className={!isHigh && !isMedium ? "text-rose-600 font-black" : ""}>Low</span>
+                <span className={isMedium ? "text-amber-600 font-black" : ""}>Medium</span>
+                <span className={isHigh ? "text-emerald-600 font-black" : ""}>High</span>
               </div>
             </div>
 
             <div className="pt-1 border-t border-slate-100 space-y-1">
               <p className="text-[10px] text-slate-600 font-medium leading-tight">
-                <strong className="text-slate-700">Why?</strong> "{shortExplanation}"
+                <strong className="text-slate-700">Rationale:</strong> "{shortExplanation}"
               </p>
               <Button 
                 onClick={() => setIsReasoningOpen(true)}
