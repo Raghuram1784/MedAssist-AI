@@ -1,0 +1,11 @@
+{
+  "calibration_method": "Temperature Scaling (NLL minimization)",
+  "dataset_evaluated": "validate.csv (first 25,000 cases)",
+  "test_set_used": false,
+  "optimal_temperature_T": 0.7698,
+  "raw_expected_calibration_error_ECE": 0.0010,
+  "calibrated_expected_calibration_error_ECE": 0.0016,
+  "raw_negative_log_likelihood_NLL": 0.0101,
+  "calibrated_negative_log_likelihood_NLL": 0.0120,
+  "documentation": "Temperature scaling was fitted on 10,000 validation cases and evaluated on 15,000 disjoint validation cases. The raw Logistic Regression model already exhibits outstanding calibration (ECE = 0.0010) on DDXPlus. Applying T=0.7698 yields virtually identical results. Both T=1.0 and T=0.7698 are supported."
+}

@@ -1,0 +1,328 @@
+{
+  "timestamp": "2026-10-05 15:08:32",
+  "leakage_check": "100% clean (0 pathology or differential features)",
+  "ablation_results": [
+    {
+      "configuration": "A. All Features (1,198 dims)",
+      "dims": 1198,
+      "top1": 99.58,
+      "top3": 100.0,
+      "top5": 100.0,
+      "mrr": 0.9979,
+      "macro_f1": 99.59,
+      "time_seconds": 8.18
+    },
+    {
+      "configuration": "B. Age + Sex only (3 dims)",
+      "dims": 3,
+      "top1": 2.34,
+      "top3": 6.47,
+      "top5": 11.86,
+      "mrr": 0.0998,
+      "macro_f1": 0.32,
+      "time_seconds": 9.98
+    },
+    {
+      "configuration": "C. INITIAL_EVIDENCE + Age + Sex (226 dims)",
+      "dims": 226,
+      "top1": 33.9,
+      "top3": 56.99,
+      "top5": 68.68,
+      "mrr": 0.4948,
+      "macro_f1": 34.5,
+      "time_seconds": 17.5
+    },
+    {
+      "configuration": "D. Binary Findings + Age + Sex (137 dims)",
+      "dims": 211,
+      "top1": 98.91,
+      "top3": 100.0,
+      "top5": 100.0,
+      "mrr": 0.9946,
+      "macro_f1": 98.91,
+      "time_seconds": 9.4
+    },
+    {
+      "configuration": "E. Categorical/Multi Findings + Age + Sex (755 dims)",
+      "dims": 755,
+      "top1": 72.57,
+      "top3": 80.58,
+      "top5": 85.39,
+      "mrr": 0.7905,
+      "macro_f1": 69.32,
+      "time_seconds": 22.89
+    },
+    {
+      "configuration": "F. Antecedents + Age + Sex (127 dims)",
+      "dims": 127,
+      "top1": 87.18,
+      "top3": 96.28,
+      "top5": 97.04,
+      "mrr": 0.9189,
+      "macro_f1": 86.71,
+      "time_seconds": 18.85
+    },
+    {
+      "configuration": "G. All Evidence EXCEPT INITIAL_EVIDENCE (975 dims)",
+      "dims": 975,
+      "top1": 99.58,
+      "top3": 100.0,
+      "top5": 100.0,
+      "mrr": 0.9979,
+      "macro_f1": 99.59,
+      "time_seconds": 7.4
+    },
+    {
+      "configuration": "H. All Evidence EXCEPT Antecedents (1,074 dims)",
+      "dims": 1074,
+      "top1": 97.7,
+      "top3": 99.96,
+      "top5": 100.0,
+      "mrr": 0.9883,
+      "macro_f1": 97.61,
+      "time_seconds": 10.49
+    }
+  ],
+  "top_features": [
+    {
+      "rank": 1,
+      "feature": "ev_E_13",
+      "type": "Binary Finding",
+      "max_coef": 4.27,
+      "associated_pathology": "Unstable angina",
+      "definition": "Do you find that your symptoms have worsened over the last 2 weeks and that progressively less effort is required to cause the symptoms?"
+    },
+    {
+      "rank": 2,
+      "feature": "ev_E_41",
+      "type": "Antecedent",
+      "max_coef": 4.073,
+      "associated_pathology": "Viral pharyngitis",
+      "definition": "Have you been in contact with a person with similar symptoms in the past 2 weeks?"
+    },
+    {
+      "rank": 3,
+      "feature": "ev_E_14",
+      "type": "Binary Finding",
+      "max_coef": 4.052,
+      "associated_pathology": "Unstable angina",
+      "definition": "Do you have chest pain even at rest?"
+    },
+    {
+      "rank": 4,
+      "feature": "init_E_194",
+      "type": "Chief Complaint",
+      "max_coef": 3.942,
+      "associated_pathology": "Larygospasm",
+      "definition": "Have you noticed a high pitched sound when breathing in?"
+    },
+    {
+      "rank": 5,
+      "feature": "ev_E_212",
+      "type": "Binary Finding",
+      "max_coef": 3.91,
+      "associated_pathology": "Acute laryngitis",
+      "definition": "Have you noticed that the tone of your voice has become deeper, softer or hoarse?"
+    },
+    {
+      "rank": 6,
+      "feature": "ev_E_166",
+      "type": "Binary Finding",
+      "max_coef": 3.59,
+      "associated_pathology": "Whooping cough",
+      "definition": "Did you vomit after coughing?"
+    },
+    {
+      "rank": 7,
+      "feature": "ev_E_209",
+      "type": "Antecedent",
+      "max_coef": 3.578,
+      "associated_pathology": "Acute rhinosinusitis",
+      "definition": "Are your vaccinations up to date?"
+    },
+    {
+      "rank": 8,
+      "feature": "ev_E_194",
+      "type": "Binary Finding",
+      "max_coef": 3.561,
+      "associated_pathology": "Larygospasm",
+      "definition": "Have you noticed a high pitched sound when breathing in?"
+    },
+    {
+      "rank": 9,
+      "feature": "ev_E_169",
+      "type": "Binary Finding",
+      "max_coef": 3.454,
+      "associated_pathology": "Allergic sinusitis",
+      "definition": "Is your nose or the back of your throat itchy?"
+    },
+    {
+      "rank": 10,
+      "feature": "ev_E_84",
+      "type": "Binary Finding",
+      "max_coef": 3.266,
+      "associated_pathology": "Guillain-Barr\u00e9 syndrome",
+      "definition": "Do you feel weakness in both arms and/or both legs?"
+    },
+    {
+      "rank": 11,
+      "feature": "ev_E_55_@_V_130",
+      "type": "Finding (M)",
+      "max_coef": 3.238,
+      "associated_pathology": "Acute otitis media",
+      "definition": "Do you feel pain somewhere? -> ear(L)"
+    },
+    {
+      "rank": 12,
+      "feature": "ev_E_181",
+      "type": "Binary Finding",
+      "max_coef": 3.236,
+      "associated_pathology": "Allergic sinusitis",
+      "definition": "Do you have nasal congestion or a clear runny nose?"
+    },
+    {
+      "rank": 13,
+      "feature": "ev_E_55_@_V_129",
+      "type": "Finding (M)",
+      "max_coef": 3.234,
+      "associated_pathology": "Acute otitis media",
+      "definition": "Do you feel pain somewhere? -> ear(R)"
+    },
+    {
+      "rank": 14,
+      "feature": "ev_E_157",
+      "type": "Binary Finding",
+      "max_coef": 3.184,
+      "associated_pathology": "Guillain-Barr\u00e9 syndrome",
+      "definition": "Have you recently had numbness, loss of sensation or tingling, in both arms and legs and around your mouth?"
+    },
+    {
+      "rank": 15,
+      "feature": "ev_E_155",
+      "type": "Binary Finding",
+      "max_coef": 3.168,
+      "associated_pathology": "PSVT",
+      "definition": "Do you feel your heart is beating fast (racing), irregularly (missing a beat) or do you feel palpitations?"
+    },
+    {
+      "rank": 16,
+      "feature": "ev_E_18",
+      "type": "Antecedent",
+      "max_coef": 3.164,
+      "associated_pathology": "Bronchiectasis",
+      "definition": "Do you have cystic fibrosis?"
+    },
+    {
+      "rank": 17,
+      "feature": "ev_E_65",
+      "type": "Binary Finding",
+      "max_coef": 3.145,
+      "associated_pathology": "Myasthenia gravis",
+      "definition": "Do you have difficulty swallowing, or have a feeling of discomfort/blockage when swallowing?"
+    },
+    {
+      "rank": 18,
+      "feature": "ev_E_52",
+      "type": "Binary Finding",
+      "max_coef": 3.131,
+      "associated_pathology": "Myasthenia gravis",
+      "definition": "Do you have the perception of seeing two images of a single object seen overlapping or adjacent to each other (double vision)?"
+    },
+    {
+      "rank": 19,
+      "feature": "ev_E_63",
+      "type": "Binary Finding",
+      "max_coef": 3.102,
+      "associated_pathology": "Myasthenia gravis",
+      "definition": "Do you have difficulty articulating words/speaking?"
+    },
+    {
+      "rank": 20,
+      "feature": "ev_E_0",
+      "type": "Antecedent",
+      "max_coef": 3.101,
+      "associated_pathology": "Guillain-Barr\u00e9 syndrome",
+      "definition": "Have you recently had a viral infection?"
+    },
+    {
+      "rank": 21,
+      "feature": "ev_E_83",
+      "type": "Binary Finding",
+      "max_coef": 3.083,
+      "associated_pathology": "Guillain-Barr\u00e9 syndrome",
+      "definition": "Have you noticed weakness in your facial muscles and/or eyes?"
+    },
+    {
+      "rank": 22,
+      "feature": "ev_E_91",
+      "type": "Binary Finding",
+      "max_coef": 3.081,
+      "associated_pathology": "Acute rhinosinusitis",
+      "definition": "Do you have a fever (either felt or measured with a thermometer)?"
+    },
+    {
+      "rank": 23,
+      "feature": "ev_E_227",
+      "type": "Antecedent",
+      "max_coef": 3.052,
+      "associated_pathology": "Viral pharyngitis",
+      "definition": "Are you immunosuppressed?"
+    },
+    {
+      "rank": 24,
+      "feature": "ev_E_170",
+      "type": "Binary Finding",
+      "max_coef": 3.048,
+      "associated_pathology": "Allergic sinusitis",
+      "definition": "Do you have severe itching in one or both eyes?"
+    },
+    {
+      "rank": 25,
+      "feature": "ev_E_77",
+      "type": "Binary Finding",
+      "max_coef": 3.029,
+      "associated_pathology": "Bronchiectasis",
+      "definition": "Do you have a cough that produces colored or more abundant sputum than usual?"
+    },
+    {
+      "rank": 26,
+      "feature": "ev_E_204_@_V_1",
+      "type": "Antecedent",
+      "max_coef": 3.029,
+      "associated_pathology": "Ebola",
+      "definition": "Have you traveled out of the country in the last 4 weeks? -> West Africa"
+    },
+    {
+      "rank": 27,
+      "feature": "ev_E_152_@_V_123",
+      "type": "Finding (M)",
+      "max_coef": 2.975,
+      "associated_pathology": "Chagas",
+      "definition": "Where is the swelling located? -> nowhere"
+    },
+    {
+      "rank": 28,
+      "feature": "ev_E_3",
+      "type": "Antecedent",
+      "max_coef": 2.972,
+      "associated_pathology": "Pericarditis",
+      "definition": "Have you ever had a pericarditis?"
+    },
+    {
+      "rank": 29,
+      "feature": "ev_E_172",
+      "type": "Binary Finding",
+      "max_coef": 2.945,
+      "associated_pathology": "Myasthenia gravis",
+      "definition": "Do you have a hard time opening/raising one or both eyelids?"
+    },
+    {
+      "rank": 30,
+      "feature": "ev_E_45",
+      "type": "Binary Finding",
+      "max_coef": 2.921,
+      "associated_pathology": "Tuberculosis",
+      "definition": "Have you been coughing up blood?"
+    }
+  ]
+}

@@ -20,8 +20,13 @@ datasets/
 *.csv
 
 # FAISS generated index files (recreated using build_vector_store.py)
-backend/rag/faiss_index/*.index
-backend/rag/faiss_index/*.json
+backend/rag/faiss_index/
+backend/rag/faiss_index_*/
+backend/rag/*.dat
+backend/rag/*.index
+
+# Temporary caches and binary embeddings
+*.npy
 
 # Compiled knowledge graph pickle files
 backend/knowledge_graph/*.pkl

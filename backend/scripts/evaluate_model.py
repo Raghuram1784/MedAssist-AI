@@ -6,7 +6,7 @@ import random
 import numpy as np
 import pandas as pd
 from collections import Counter, defaultdict
-from typing import List, Dict, Any
+from sklearn.metrics import classification_report
 
 # Ensure project root is in python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -22,6 +22,9 @@ from backend.llm.reasoning import ClinicalReasoningSystem
 def evaluate_offline_model():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
+    # Ensure project root is the repo root
+    if os.path.basename(project_root) == "backend":
+        project_root = os.path.dirname(project_root)
     
     index_dir = os.path.join(project_root, "backend", "rag", "faiss_index")
     if not os.path.exists(index_dir):
@@ -129,6 +132,10 @@ def evaluate_offline_model():
     pathology_fp = Counter()
     pathology_fn = Counter()
     
+    # Direct 3-Mode Comparison Accumulators
+    comp_modes = ["Phase 5.4", "Structured Classifier", "Phase 5.5 Hybrid"]
+    comp_stats = {m: {"top1": 0, "top3": 0, "top5": 0, "rr_sum": 0.0, "y_true": [], "y_pred": []} for m in comp_modes}
+    
     start_eval_time = time.time()
     
     for idx_num, test_idx in enumerate(selected_indices):
@@ -181,27 +188,51 @@ def evaluate_offline_model():
         t3 = time.perf_counter()
         faiss_search_ms = (t3 - t2) * 1000.0
         
-        # 3. Knowledge Graph Candidate Discovery
+        # 3. Knowledge Graph & Structured Classifier Candidate Discovery
         t4 = time.perf_counter()
-        candidate_pool = set()
+        candidate_pool_54 = set()
         for c in retrieved_cases_25:
             if "ground_truth" in c:
-                candidate_pool.add(c["ground_truth"])
+                candidate_pool_54.add(c["ground_truth"])
             for diff_item in c.get("differential", []):
                 if isinstance(diff_item, dict) and "pathology" in diff_item:
-                    candidate_pool.add(diff_item["pathology"])
+                    candidate_pool_54.add(diff_item["pathology"])
         for sym in normalized_symptoms:
             kg_diseases = get_related_diseases(graph, sym)
             for d in kg_diseases:
+                candidate_pool_54.add(d)
+                
+        # Structured Classifier Prediction
+        t_clf0 = time.perf_counter()
+        clf_res = reasoning_system.classifier_adapter.predict_probabilities(
+            age=case.age,
+            sex=case.sex,
+            initial_evidence=case.initial_evidence,
+            evidences=case.evidences
+        )
+        t_clf1 = time.perf_counter()
+        clf_ms = (t_clf1 - t_clf0) * 1000.0
+        
+        candidate_pool = set(candidate_pool_54)
+        for d, p in clf_res["top_predictions"][:10]:
+            if p > 0.001:
                 candidate_pool.add(d)
+                
         t5 = time.perf_counter()
-        kg_discovery_ms = (t5 - t4) * 1000.0
+        kg_discovery_ms = (t5 - t4) * 1000.0 - clf_ms
         
         # 4. Multi-Factor Hybrid Candidate Scoring & Ranking
         t6 = time.perf_counter()
-        scored_candidates = reasoning_system.score_and_rank_candidates(normalized_symptoms, retrieved_cases_25, candidate_pool)
+        scored_candidates = reasoning_system.score_and_rank_candidates(
+            normalized_symptoms=normalized_symptoms,
+            retrieved_cases_25=retrieved_cases_25,
+            candidate_pool=candidate_pool,
+            classifier_probs=clf_res["probabilities"],
+            sparsity_ratio=clf_res["sparsity_ratio"],
+            features_populated=clf_res["features_populated"]
+        )
         t7 = time.perf_counter()
-        hybrid_scoring_ms = (t7 - t6) * 1000.0
+        hybrid_scoring_ms = clf_ms + ((t7 - t6) * 1000.0)
         
         total_pre_llm_ms = encoding_ms + faiss_search_ms + kg_discovery_ms + hybrid_scoring_ms
         
@@ -211,11 +242,32 @@ def evaluate_offline_model():
         scoring_latencies.append(hybrid_scoring_ms)
         total_latencies.append(total_pre_llm_ms)
         
+        # Also track Phase 5.4 baseline and Structured Classifier alone for direct comparison table
+        scored_54 = reasoning_system.score_and_rank_candidates(
+            normalized_symptoms, retrieved_cases_25, candidate_pool_54, classifier_probs=None
+        )
+        ranked_54 = [c["disease"] for c in scored_54]
+        ranked_struct = [p[0] for p in clf_res["top_predictions"]]
+        
         # Metric Calculations for Case
         ranked_diseases = [c["disease"] for c in scored_candidates]
         top1_prediction = ranked_diseases[0] if ranked_diseases else ""
         top3_candidates = ranked_diseases[:3]
         top5_candidates = ranked_diseases[:5]
+        
+        # Accumulate into comp_stats for 3-mode comparison
+        gt_l = gt_pathology.lower()
+        for mode_name, rk_list in [("Phase 5.4", ranked_54), ("Structured Classifier", ranked_struct), ("Phase 5.5 Hybrid", ranked_diseases)]:
+            comp_stats[mode_name]["y_true"].append(gt_pathology)
+            pred_top1 = rk_list[0] if rk_list else ""
+            comp_stats[mode_name]["y_pred"].append(pred_top1)
+            matches_m = [i for i, d in enumerate(rk_list) if d.lower() == gt_l]
+            if matches_m:
+                rank_m = matches_m[0] + 1
+                comp_stats[mode_name]["rr_sum"] += 1.0 / rank_m
+                if rank_m == 1: comp_stats[mode_name]["top1"] += 1
+                if rank_m <= 3: comp_stats[mode_name]["top3"] += 1
+                if rank_m <= 5: comp_stats[mode_name]["top5"] += 1
         
         is_top1 = (top1_prediction.lower() == gt_pathology.lower())
         is_top3 = any(d.lower() == gt_pathology.lower() for d in top3_candidates)
@@ -332,10 +384,36 @@ def evaluate_offline_model():
             "eval_cases": eval_cases,
             "top1_accuracy": p_top1_acc,
             "top5_accuracy": p_top5_acc,
+            "precision": round(prec * 100.0, 2),
+            "recall": round(rec * 100.0, 2),
             "f1_score": round(f1 * 100.0, 2)
         })
         
     macro_f1_val = round(float(np.mean(f1_list)) * 100.0, 2)
+    min_pathology_recall = min(p["recall"] for p in per_pathology_performance) if per_pathology_performance else 0.0
+    
+    # Compute 3-Mode Comparison Table
+    comp_table = []
+    for mode_name in ["Phase 5.4", "Structured Classifier", "Phase 5.5 Hybrid"]:
+        st = comp_stats[mode_name]
+        rep_m = classification_report(st["y_true"], st["y_pred"], target_names=all_evaluated_pathologies, output_dict=True, zero_division=0)
+        macro_f1_m = round(rep_m["macro avg"]["f1-score"] * 100.0, 2)
+        comp_table.append({
+            "mode": mode_name,
+            "top1": round(st["top1"] / N * 100.0, 2),
+            "top3": round(st["top3"] / N * 100.0, 2),
+            "top5": round(st["top5"] / N * 100.0, 2),
+            "mrr": round(st["rr_sum"] / N, 4),
+            "macro_f1": macro_f1_m
+        })
+        
+    abs_improvement = {
+        "top1": round(comp_table[2]["top1"] - comp_table[0]["top1"], 2),
+        "top3": round(comp_table[2]["top3"] - comp_table[0]["top3"], 2),
+        "top5": round(comp_table[2]["top5"] - comp_table[0]["top5"], 2),
+        "mrr": round(comp_table[2]["mrr"] - comp_table[0]["mrr"], 4),
+        "macro_f1": round(comp_table[2]["macro_f1"] - comp_table[0]["macro_f1"], 2)
+    }
     
     # Latency Summaries
     latencies_summary = {
@@ -395,6 +473,9 @@ def evaluate_offline_model():
         "ddp_5": ddp_5_val,
         "ddf1_5": ddf1_5_val,
         "latencies": latencies_summary,
+        "min_pathology_recall": min_pathology_recall,
+        "comparison_table": comp_table,
+        "absolute_improvement": abs_improvement,
         "per_pathology_performance": per_pathology_performance,
         "disclaimer": "Benchmark results are measured on the synthetic DDXPlus held-out test set. They do not represent real-world clinical accuracy, patient outcomes, or clinical safety."
     }
@@ -424,16 +505,29 @@ def evaluate_offline_model():
     print(f"Top-5 Exact Match: {top5_exact_accuracy}%")
     print(f"MRR: {mrr_val}")
     print(f"Macro F1: {macro_f1_val}%")
+    print(f"Minimum Pathology Recall: {min_pathology_recall}%")
+    print(f"FAISS Recall@5: {retrieval_recall_at_5}%")
+    print(f"FAISS Recall@10: {retrieval_recall_at_10}%")
     print(f"FAISS Recall@25: {retrieval_recall_at_25}%")
     print(f"Candidate Recall@5: {candidate_recall_at_5}%")
     print(f"DDR@5: {ddr_5_val}% | DDP@5: {ddp_5_val}% | DDF1@5: {ddf1_5_val}%")
-    print(f"BERT Encoding (P50/P95): {latencies_summary['encoding_ms']['p50']}ms / {latencies_summary['encoding_ms']['p95']}ms")
-    print(f"FAISS Search (P50/P95): {latencies_summary['faiss_search_ms']['p50']}ms / {latencies_summary['faiss_search_ms']['p95']}ms")
-    print(f"KG Discovery (P50/P95): {latencies_summary['kg_discovery_ms']['p50']}ms / {latencies_summary['kg_discovery_ms']['p95']}ms")
-    print(f"Hybrid Scoring (P50/P95): {latencies_summary['hybrid_scoring_ms']['p50']}ms / {latencies_summary['hybrid_scoring_ms']['p95']}ms")
-    print(f"Total Pre-LLM Latency (P50/P95): {latencies_summary['total_pre_llm_ms']['p50']}ms / {latencies_summary['total_pre_llm_ms']['p95']}ms")
+    print(f"BERT Encoding (Mean/P50/P95): {latencies_summary['encoding_ms']['mean']}ms / {latencies_summary['encoding_ms']['p50']}ms / {latencies_summary['encoding_ms']['p95']}ms")
+    print(f"FAISS Search (Mean/P50/P95): {latencies_summary['faiss_search_ms']['mean']}ms / {latencies_summary['faiss_search_ms']['p50']}ms / {latencies_summary['faiss_search_ms']['p95']}ms")
+    print(f"KG Discovery (Mean/P50/P95): {latencies_summary['kg_discovery_ms']['mean']}ms / {latencies_summary['kg_discovery_ms']['p50']}ms / {latencies_summary['kg_discovery_ms']['p95']}ms")
+    print(f"Hybrid Scoring (Mean/P50/P95): {latencies_summary['hybrid_scoring_ms']['mean']}ms / {latencies_summary['hybrid_scoring_ms']['p50']}ms / {latencies_summary['hybrid_scoring_ms']['p95']}ms")
+    print(f"Total Pre-LLM Latency (Mean/P50/P95): {latencies_summary['total_pre_llm_ms']['mean']}ms / {latencies_summary['total_pre_llm_ms']['p50']}ms / {latencies_summary['total_pre_llm_ms']['p95']}ms")
     print(f"Groq API Calls: 0")
-    print(f"Saved metrics to:\n  - {backend_json_path}\n  - {frontend_json_path}")
+    
+    print("\n" + "=" * 80)
+    print("                    Top-1    Top-3    Top-5    MRR     Macro F1")
+    print("=" * 80)
+    for row in comp_table:
+        print(f"{row['mode']:<22} {row['top1']:>6.2f}%  {row['top3']:>6.2f}%  {row['top5']:>6.2f}%  {row['mrr']:>6.4f}  {row['macro_f1']:>6.2f}%")
+    print("-" * 80)
+    print(f"{'Absolute Improvement':<22} +{abs_improvement['top1']:>5.2f}%  +{abs_improvement['top3']:>5.2f}%  +{abs_improvement['top5']:>5.2f}%  +{abs_improvement['mrr']:>6.4f}  +{abs_improvement['macro_f1']:>5.2f}%")
+    print("=" * 80)
+    
+    print(f"\nSaved metrics to:\n  - {backend_json_path}\n  - {frontend_json_path}")
     print(f"Saved case results to: {backend_jsonl_path}")
     print("==================================================\n")
 

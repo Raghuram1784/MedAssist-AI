@@ -1,0 +1,216 @@
+{
+  "cohort_size": 2402,
+  "best_weights": {
+    "w_struct": 0.5789,
+    "w_faiss": 0.0842,
+    "w_kg_match": 0.2105,
+    "w_kg_comp": 0.0842,
+    "w_diff": 0.0421
+  },
+  "comparison_table": {
+    "1. Phase 5.4 Baseline": {
+      "top1": 37.05,
+      "top3": 50.58,
+      "top5": 62.2,
+      "mrr": 0.4962,
+      "macro_f1": 31.35,
+      "min_recall": 0.0
+    },
+    "2. Structured Classifier Alone": {
+      "top1": 99.54,
+      "top3": 100.0,
+      "top5": 100.0,
+      "mrr": 0.9977,
+      "macro_f1": 99.55,
+      "min_recall": 84.0
+    },
+    "3. Current Hybrid": {
+      "top1": 99.5,
+      "top3": 99.67,
+      "top5": 99.67,
+      "mrr": 0.9963,
+      "macro_f1": 99.51,
+      "min_recall": 84.0
+    },
+    "4. Optimized Hybrid": {
+      "top1": 99.54,
+      "top3": 99.96,
+      "top5": 99.96,
+      "mrr": 0.9976,
+      "macro_f1": 99.55,
+      "min_recall": 84.0
+    }
+  },
+  "top_10_grid_configs": [
+    {
+      "weights": {
+        "w_struct": 0.5789,
+        "w_faiss": 0.0842,
+        "w_kg_match": 0.2105,
+        "w_kg_comp": 0.0842,
+        "w_diff": 0.0421
+      },
+      "metrics": {
+        "top1": 99.54,
+        "top3": 99.96,
+        "top5": 99.96,
+        "mrr": 0.9976,
+        "macro_f1": 99.55,
+        "min_recall": 84.0
+      }
+    },
+    {
+      "weights": {
+        "w_struct": 0.625,
+        "w_faiss": 0.0833,
+        "w_kg_match": 0.2083,
+        "w_kg_comp": 0.0417,
+        "w_diff": 0.0417
+      },
+      "metrics": {
+        "top1": 99.54,
+        "top3": 99.96,
+        "top5": 99.96,
+        "mrr": 0.9976,
+        "macro_f1": 99.55,
+        "min_recall": 84.0
+      }
+    },
+    {
+      "weights": {
+        "w_struct": 0.6,
+        "w_faiss": 0.08,
+        "w_kg_match": 0.2,
+        "w_kg_comp": 0.08,
+        "w_diff": 0.04
+      },
+      "metrics": {
+        "top1": 99.54,
+        "top3": 99.96,
+        "top5": 99.96,
+        "mrr": 0.9976,
+        "macro_f1": 99.55,
+        "min_recall": 84.0
+      }
+    },
+    {
+      "weights": {
+        "w_struct": 0.65,
+        "w_faiss": 0.08,
+        "w_kg_match": 0.15,
+        "w_kg_comp": 0.08,
+        "w_diff": 0.04
+      },
+      "metrics": {
+        "top1": 99.54,
+        "top3": 99.96,
+        "top5": 99.96,
+        "mrr": 0.9976,
+        "macro_f1": 99.55,
+        "min_recall": 84.0
+      }
+    },
+    {
+      "weights": {
+        "w_struct": 0.6436,
+        "w_faiss": 0.0792,
+        "w_kg_match": 0.198,
+        "w_kg_comp": 0.0396,
+        "w_diff": 0.0396
+      },
+      "metrics": {
+        "top1": 99.54,
+        "top3": 99.96,
+        "top5": 99.96,
+        "mrr": 0.9976,
+        "macro_f1": 99.55,
+        "min_recall": 84.0
+      }
+    },
+    {
+      "weights": {
+        "w_struct": 0.619,
+        "w_faiss": 0.0762,
+        "w_kg_match": 0.1905,
+        "w_kg_comp": 0.0762,
+        "w_diff": 0.0381
+      },
+      "metrics": {
+        "top1": 99.54,
+        "top3": 99.96,
+        "top5": 99.96,
+        "mrr": 0.9976,
+        "macro_f1": 99.55,
+        "min_recall": 84.0
+      }
+    },
+    {
+      "weights": {
+        "w_struct": 0.5294,
+        "w_faiss": 0.0941,
+        "w_kg_match": 0.2353,
+        "w_kg_comp": 0.0941,
+        "w_diff": 0.0471
+      },
+      "metrics": {
+        "top1": 99.54,
+        "top3": 99.92,
+        "top5": 99.96,
+        "mrr": 0.9975,
+        "macro_f1": 99.55,
+        "min_recall": 84.0
+      }
+    },
+    {
+      "weights": {
+        "w_struct": 0.5814,
+        "w_faiss": 0.093,
+        "w_kg_match": 0.2326,
+        "w_kg_comp": 0.0465,
+        "w_diff": 0.0465
+      },
+      "metrics": {
+        "top1": 99.54,
+        "top3": 99.92,
+        "top5": 99.96,
+        "mrr": 0.9975,
+        "macro_f1": 99.55,
+        "min_recall": 84.0
+      }
+    },
+    {
+      "weights": {
+        "w_struct": 0.5556,
+        "w_faiss": 0.0889,
+        "w_kg_match": 0.2222,
+        "w_kg_comp": 0.0889,
+        "w_diff": 0.0444
+      },
+      "metrics": {
+        "top1": 99.54,
+        "top3": 99.96,
+        "top5": 99.96,
+        "mrr": 0.9975,
+        "macro_f1": 99.55,
+        "min_recall": 84.0
+      }
+    },
+    {
+      "weights": {
+        "w_struct": 0.6111,
+        "w_faiss": 0.0889,
+        "w_kg_match": 0.1667,
+        "w_kg_comp": 0.0889,
+        "w_diff": 0.0444
+      },
+      "metrics": {
+        "top1": 99.54,
+        "top3": 99.92,
+        "top5": 99.96,
+        "mrr": 0.9975,
+        "macro_f1": 99.55,
+        "min_recall": 84.0
+      }
+    }
+  ]
+}

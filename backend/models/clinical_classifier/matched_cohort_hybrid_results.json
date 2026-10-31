@@ -1,0 +1,54 @@
+{
+  "sample_size": 2402,
+  "modes": {
+    "A_baseline": {
+      "top1": 37.05,
+      "top3": 50.46,
+      "top5": 58.58,
+      "mrr": 0.4884,
+      "macro_f1": 31.5,
+      "cand_recall_5": 58.58,
+      "diff_recall": 36.4,
+      "diff_prec": 50.7,
+      "diff_f1": 35.62
+    },
+    "B_struct_alone": {
+      "top1": 99.54,
+      "top3": 100.0,
+      "top5": 100.0,
+      "mrr": 0.9977,
+      "macro_f1": 99.55,
+      "cand_recall_5": 100.0,
+      "diff_recall": 39.22,
+      "diff_prec": 51.36,
+      "diff_f1": 37.15
+    },
+    "C_hybrid": {
+      "top1": 99.5,
+      "top3": 99.67,
+      "top5": 99.67,
+      "mrr": 0.9963,
+      "macro_f1": 99.51,
+      "cand_recall_5": 99.67,
+      "diff_recall": 41.72,
+      "diff_prec": 56.04,
+      "diff_f1": 40.16
+    },
+    "D_calibrated_hybrid": {
+      "top1": 99.5,
+      "top3": 99.67,
+      "top5": 99.67,
+      "mrr": 0.9961,
+      "macro_f1": 99.51,
+      "cand_recall_5": 99.67,
+      "diff_recall": 41.71,
+      "diff_prec": 56.03,
+      "diff_f1": 40.15
+    }
+  },
+  "faiss_recalls": {
+    "recall_at_5": 34.43,
+    "recall_at_10": 35.72,
+    "recall_at_25": 37.01
+  }
+}

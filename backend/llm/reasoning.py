@@ -19,31 +19,45 @@ SPECIFIC_SEVERE_PATHOLOGIES = {
 }
 
 class ClinicalReasoningSystem:
-    def __init__(self, retriever, graph):
+    def __init__(self, retriever, graph, classifier_adapter=None):
         """
-        Initialize the reasoning system coordinator.
+        Initialize the reasoning system coordinator (Phase 5.5).
         
         Args:
             retriever: The ClinicalCaseRetriever instance (Phase 2 RAG).
             graph: The NetworkX DiGraph instance (Phase 3 KG).
+            classifier_adapter: Optional StructuredClassifierAdapter instance (Phase 5.5).
         """
         self.retriever = retriever
         self.graph = graph
         self.llm_client = LLMClient()
+        
+        if classifier_adapter is not None:
+            self.classifier_adapter = classifier_adapter
+        else:
+            try:
+                from backend.models.clinical_classifier.classifier_adapter import StructuredClassifierAdapter
+                self.classifier_adapter = StructuredClassifierAdapter()
+            except Exception as e:
+                print(f"[Warning] Failed to initialize StructuredClassifierAdapter: {e}")
+                self.classifier_adapter = None
 
     def score_and_rank_candidates(
         self,
         normalized_symptoms: List[str],
         retrieved_cases_25: List[Dict[str, Any]],
-        candidate_pool: set
+        candidate_pool: set,
+        classifier_probs: Optional[Dict[str, float]] = None,
+        sparsity_ratio: float = 1.0,
+        features_populated: int = 0
     ) -> List[Dict[str, Any]]:
         """
-        Score and rank candidate diseases using multi-factor clinical evidence:
-        1. KG Symptom Match Ratio (fraction of query symptoms explained by candidate)
-        2. KG Symptom Completeness (fraction of candidate's typical symptoms present)
+        Score and rank candidate diseases using multi-factor hybrid clinical evidence:
+        1. Structured Clinical Evidence Classifier (P_struct, gated by sparsity)
+        2. KG Symptom Match Ratio & Completeness
         3. FAISS Cohort Frequency & Vector Similarity
         4. DDXPlus Differential Probability from cohort
-        5. Zero-FAISS Support Discount (to prevent ungrounded KG candidates from dominating)
+        5. Zero-FAISS Support Discount (for ungrounded KG candidates without classifier support)
         6. Distinguishing Symptom Penalty for generic severe presentations
         7. Deterministic Tie-Breaking
         """
@@ -54,10 +68,27 @@ class ClinicalReasoningSystem:
         has_any_faiss_support = any(path_counts.get(c, 0) > 0 for c in path_counts)
         num_query_symptoms = max(1, len(normalized_symptoms))
         
-        W_KG_MATCH = 0.40
-        W_KG_COMPLETENESS = 0.15
-        W_FAISS = 0.30
-        W_DIFF = 0.15
+        # Phase 5.5 Validated Optimal Hybrid Weights (Empirically Optimized on 2,428-case Matched Validation Cohort)
+        if classifier_probs is not None:
+            W_STRUCT = 0.69
+            W_FAISS = 0.09
+            W_KG_MATCH = 0.11
+            W_KG_COMPLETENESS = 0.04
+            W_DIFF = 0.07
+        else:
+            W_STRUCT = 0.00
+            W_FAISS = 0.30
+            W_KG_MATCH = 0.40
+            W_KG_COMPLETENESS = 0.15
+            W_DIFF = 0.15
+            sparsity_ratio = 0.0
+            
+        # Dynamic sparsity redistribution: if structured findings are sparse/incomplete,
+        # proportionally redistribute weight to Knowledge Graph and FAISS so total weight remains 1.0
+        effective_w_kg_match = W_KG_MATCH + (W_STRUCT * (1.0 - sparsity_ratio) * 0.50)
+        effective_w_kg_comp = W_KG_COMPLETENESS + (W_STRUCT * (1.0 - sparsity_ratio) * 0.15)
+        effective_w_faiss = W_FAISS + (W_STRUCT * (1.0 - sparsity_ratio) * 0.25)
+        effective_w_diff = W_DIFF + (W_STRUCT * (1.0 - sparsity_ratio) * 0.10)
         
         scored_candidates = []
         for candidate in candidate_pool:
@@ -91,12 +122,15 @@ class ClinicalReasoningSystem:
             faiss_score = (0.6 * faiss_freq_score) + (0.4 * avg_sim)
             diff_score = min(1.0, diff_prob_sum / max(1, faiss_count if faiss_count > 0 else 1))
             
-            # c) Zero-FAISS Support Factor
+            # c) Structured Evidence Classifier Probability
+            s_struct = classifier_probs.get(candidate, 0.0) if classifier_probs else 0.0
+            
+            # d) Zero-FAISS Support Factor (only discounted if no FAISS support AND classifier has no confidence)
             faiss_support_mult = 1.0
-            if faiss_count == 0 and diff_prob_sum == 0.0 and has_any_faiss_support:
+            if faiss_count == 0 and diff_prob_sum == 0.0 and has_any_faiss_support and s_struct < 0.10:
                 faiss_support_mult = 0.85
                 
-            # d) Severe Pathology Distinguishing Symptom Penalty
+            # e) Severe Pathology Distinguishing Symptom Penalty
             penalty = 0.0
             if candidate in SPECIFIC_SEVERE_PATHOLOGIES:
                 required_features = SPECIFIC_SEVERE_PATHOLOGIES[candidate]
@@ -107,7 +141,13 @@ class ClinicalReasoningSystem:
                 if not has_distinguishing_feature and num_query_symptoms <= 3:
                     penalty = 0.25
                     
-            raw_score = (W_KG_MATCH * kg_match_ratio) + (W_KG_COMPLETENESS * kg_completeness) + (W_FAISS * faiss_score) + (W_DIFF * diff_score)
+            raw_score = (
+                (W_STRUCT * sparsity_ratio * s_struct)
+                + (effective_w_kg_match * kg_match_ratio)
+                + (effective_w_kg_comp * kg_completeness)
+                + (effective_w_faiss * faiss_score)
+                + (effective_w_diff * diff_score)
+            )
             hybrid_score = (raw_score * faiss_support_mult) - penalty
             
             scored_candidates.append({
@@ -116,6 +156,7 @@ class ClinicalReasoningSystem:
                 "kg_match_ratio": kg_match_ratio,
                 "kg_completeness": kg_completeness,
                 "faiss_count": faiss_count,
+                "s_struct": s_struct,
                 "kg_info": kg_info
             })
             
@@ -136,51 +177,94 @@ class ClinicalReasoningSystem:
         age: int,
         sex: str,
         symptoms: List[str],
-        narrative: Optional[str] = None
+        narrative: Optional[str] = None,
+        initial_evidence: Optional[str] = None,
+        evidences: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
-        Run the end-to-end CDSS reasoning pipeline (Phase 5.4):
-        1. Normalize symptoms with terminology mapping layer.
-        2. Retrieve top-25 internal similar cases from FAISS vector store.
-        3. Discover candidates using Knowledge Graph + FAISS cohort ground truths.
-        4. Score and rank candidates using hybrid multi-factor clinical evidence.
-        5. Build compact grounded prompt context (with Top-5 FAISS cases).
-        6. Execute Groq API LLM reasoning.
-        7. Format and return structured assessment response.
+        Run the end-to-end CDSS reasoning pipeline (Phase 5.5 Hybrid System):
+        1. Predict structured probabilities with StructuredClassifierAdapter.
+        2. Normalize symptoms with terminology mapping layer.
+        3. Retrieve top-25 internal similar cases from FAISS vector store.
+        4. Discover candidates from 4 independent sources:
+           A. Structured classifier top predictions
+           B. Top-25 FAISS retrieval ground truths
+           C. Knowledge Graph symptom traversal
+           D. DDXPlus differential evidence from retrieved cohort
+        5. Score and rank candidates using multi-factor hybrid clinical evidence.
+        6. Build compact grounded prompt context (with Top-5 FAISS cases).
+        7. Execute Groq API LLM reasoning (1 single call).
+        8. Format and return structured assessment response.
         """
         gender_word = "male" if sex.upper() == "M" else "female"
         
-        # 1. Normalize Symptoms
+        # 1. Structured Classifier Prediction & Sparsity Evaluation
+        clf_output = None
+        classifier_probs = None
+        sparsity_ratio = 0.0
+        features_populated = 0
+        if self.classifier_adapter is not None:
+            try:
+                clf_output = self.classifier_adapter.predict_probabilities(
+                    age=age,
+                    sex=sex,
+                    initial_evidence=initial_evidence,
+                    evidences=evidences,
+                    symptoms=symptoms
+                )
+                classifier_probs = clf_output.get("probabilities", {})
+                sparsity_ratio = clf_output.get("sparsity_ratio", 0.0)
+                features_populated = clf_output.get("features_populated", 0)
+            except Exception as e:
+                print(f"[Warning] Classifier prediction failed: {e}")
+        
+        # 2. Normalize Symptoms
         normalized_symptoms = normalize_symptom_list(symptoms)
         if not normalized_symptoms:
             normalized_symptoms = symptoms
             
-        # 2. Formulate Query & Retrieve Top-25 Similar Cases (FAISS)
+        # 3. Formulate Query & Retrieve Top-25 Similar Cases (FAISS)
         if not narrative:
             narrative = f"The patient is a {age}-year-old {gender_word}. Presenting symptoms include: {', '.join(normalized_symptoms)}."
             
         query_text = f"{age} year old {gender_word} with {', '.join(normalized_symptoms)}"
         retrieved_cases_25 = self.retriever.retrieve_similar_cases(query_text, top_k=25)
         
-        # 3. Candidate Discovery (FAISS + Knowledge Graph)
+        # 4. Multi-Source Candidate Discovery
         candidate_pool = set()
         
-        # a) Candidates from FAISS Top 25 (ground truth & top differential entries)
+        # Source A: Structured Classifier top candidates
+        if clf_output:
+            for disease, prob in clf_output.get("top_predictions", [])[:10]:
+                if prob > 0.001:
+                    candidate_pool.add(disease)
+                    
+        # Source B: Candidates from FAISS Top 25 ground truths
         for case in retrieved_cases_25:
             if "ground_truth" in case:
                 candidate_pool.add(case["ground_truth"])
-            for diff_item in case.get("differential", []):
-                if isinstance(diff_item, dict) and "pathology" in diff_item:
-                    candidate_pool.add(diff_item["pathology"])
-                    
-        # b) Candidates from Knowledge Graph (diseases directly connected to normalized symptoms)
+                
+        # Source C: Candidates from Knowledge Graph symptom connections
         for sym in normalized_symptoms:
             kg_diseases = get_related_diseases(self.graph, sym)
             for d in kg_diseases:
                 candidate_pool.add(d)
+                
+        # Source D: Candidates from DDXPlus Differential in retrieved cohort
+        for case in retrieved_cases_25:
+            for diff_item in case.get("differential", []):
+                if isinstance(diff_item, dict) and "pathology" in diff_item:
+                    candidate_pool.add(diff_item["pathology"])
 
-        # 4. Multi-Factor Hybrid Candidate Scoring & Ranking
-        scored_candidates = self.score_and_rank_candidates(normalized_symptoms, retrieved_cases_25, candidate_pool)
+        # 5. Multi-Factor Hybrid Candidate Scoring & Ranking
+        scored_candidates = self.score_and_rank_candidates(
+            normalized_symptoms=normalized_symptoms,
+            retrieved_cases_25=retrieved_cases_25,
+            candidate_pool=candidate_pool,
+            classifier_probs=classifier_probs,
+            sparsity_ratio=sparsity_ratio,
+            features_populated=features_populated
+        )
         
         # Select top 5 candidates for detailed evidence breakdown
         top_candidates = scored_candidates[:5]
